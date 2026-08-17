@@ -9,6 +9,7 @@ const earlierViewing: ViewingRequest = {
   date: "2026-09-01",
   time: "09:00",
   note: "",
+  confirmed: false,
   createdAt: "2026-08-01T00:00:00.000Z",
 };
 
@@ -18,6 +19,7 @@ const laterViewing: ViewingRequest = {
   date: "2026-09-01",
   time: "15:30",
   note: "Bringing a contractor",
+  confirmed: true,
   createdAt: "2026-08-02T00:00:00.000Z",
 };
 

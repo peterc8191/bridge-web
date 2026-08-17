@@ -8,9 +8,11 @@ A Tinder-style swiping app for browsing property listings: one listing at a time
 
 An **Issues** tab lets you report a problem to a property's owner for any listing you've saved: pick the property, add a title and description, and it's added with status "Open". The report form is collapsible (collapsed by default, same pattern as the Discover filter bar) so it doesn't crowd out the issues list. The tab lists every reported issue (newest first) with its status (Open / In Progress / Resolved) and which property it's about — a couple of issues are seeded for demo purposes so the tab isn't empty on first load. Reporting is disabled with a hint until you've saved at least one property, since issues are always tied to a specific listing.
 
-Clicking a listing on the **Saved** page opens its **property detail page** (`/property/:id`): every photo (main image + a tap-to-switch thumbnail strip), the full address/price/specs/description, any viewings you've already requested for that listing, and a form to **arrange a viewing** (date, time, optional note). Requesting a viewing is instant client-side confirmation — no backend — and past requests persist in `localStorage` and reappear on that listing's page. "Remove" on the Saved page stays a separate control from the link, so removing a listing never accidentally opens it and vice versa.
+Clicking a listing on the **Saved** page opens its **property detail page** (`/property/:id`): every photo (main image + a tap-to-switch thumbnail strip), the full address/price/specs/description, any viewings you've already requested for that listing, and a form to **arrange a viewing** (date, time, optional note). A requested viewing always starts as **Pending** (no backend/owner to confirm it) and persists in `localStorage`, reappearing on that listing's page. "Remove" on the Saved page stays a separate control from the link, so removing a listing never accidentally opens it and vice versa.
 
-The nav bar is responsive: below 640px wide, Saved/Issues/Settings collapse into a single "More" button so the bar doesn't crowd on mobile — Discover stays a direct link either way. The button is styled to match the other nav links (same text, weight, and active underline, no button chrome), just with a small chevron, so it reads as part of the nav rather than a distinct control. It shows the active route's name in place of "More" when you're on one of those three screens, and clicking it opens a small styled menu (not a native `<select>`, so it's fully themed and matches the rest of the app) that closes on selection, on Escape, or on an outside click.
+A **Viewings** tab (`/viewings`) lists every viewing you've requested, across all properties, split into two sections: **Upcoming** (soonest first) and **Past** (most recent first, at the bottom) — so what's coming up is always at the top and history fades toward the bottom. Each entry shows the property, date/time, and a **Confirmed**/**Pending** status badge, and the whole row links through to that property's detail page. A few example viewings are seeded (covering all four combinations of past/upcoming × confirmed/pending) so the page demonstrates every state on first load.
+
+The nav bar is responsive: below 640px wide, Saved/Viewings/Issues/Settings collapse into a single "More" button so the bar doesn't crowd on mobile — Discover stays a direct link either way. The button is styled to match the other nav links (same text, weight, and active underline, no button chrome), just with a small chevron, so it reads as part of the nav rather than a distinct control. It shows the active route's name in place of "More" when you're on one of those three screens, and clicking it opens a small styled menu (not a native `<select>`, so it's fully themed and matches the rest of the app) that closes on selection, on Escape, or on an outside click.
 
 A **Settings** tab holds:
 - **Theme** — System / Light / Dark, defaulting to System (follows the OS preference live, including if it changes while the app is open). The whole app is re-themed via CSS custom properties in `src/index.css`, not just the settings page — colors, borders, and status badges all switch. Listing photo cards intentionally stay black/white-on-photo in both themes (readability over real photos, not app chrome).
@@ -26,14 +28,15 @@ src/
   types/property.ts        Property shape, PropertyFilters shape
   types/issue.ts            Issue / IssueStatus / NewIssueInput shapes
   types/settings.ts          Theme / ResolvedTheme shapes
-  types/viewing.ts            ViewingRequest / NewViewingInput shapes
+  types/viewing.ts            ViewingRequest (incl. confirmed) / NewViewingInput shapes
   data/properties.ts       Mock listing data (12 properties, 4 placeholder photos each)
   data/issues.ts            Seed issues shown on first load
+  data/viewings.ts           Seed viewings (one of each past/upcoming x confirmed/pending)
   hooks/usePropertyDeck.ts Deck/saved state + localStorage persistence (+ reset)
   hooks/useIssues.ts        Seed issues + user-reported issues, persisted in localStorage (+ clearAddedIssues)
   hooks/useSettings.ts       Theme (+ system-preference resolution) and reduceMotion, persisted in localStorage;
                               applies data-theme to <html> so CSS variables re-theme the app
-  hooks/useViewings.ts        Requested viewings, persisted in localStorage
+  hooks/useViewings.ts        Seed viewings + user-requested viewings, persisted in localStorage
   components/
     PropertyCard.tsx       Swipeable card (drag + programmatic swipe) with tap-to-browse photos
     SwipeDeck.tsx           Stacked deck + like/pass buttons
@@ -44,14 +47,17 @@ src/
     StatusBadge.tsx          Open / In Progress / Resolved badge
     ViewingForm.tsx           Date/time/note form to request a viewing for one property
     ViewingList.tsx           A property's requested viewings, soonest first
-    NavBar.tsx              Discover / Saved / Issues / Settings navigation; collapses to a "More" menu button under 640px
+    NavBar.tsx              Discover / Saved / Viewings / Issues / Settings navigation; collapses to a "More" menu button under 640px
   pages/
     Discover.tsx            Swipe deck screen ("/") — owns filter state, derives the filtered deck
     Saved.tsx                Saved listings screen ("/saved") — each item links to its detail page
     PropertyDetail.tsx        Full listing details + photo gallery + arrange-a-viewing ("/property/:id")
+    Viewings.tsx               All requested viewings, Upcoming/Past sections with status badges ("/viewings")
     Issues.tsx                Report/track issues screen ("/issues")
     Settings.tsx              Theme, reduce motion, and data-reset controls ("/settings")
   utils/filterProperties.ts Pure filter predicate (unit tested independent of the UI)
+  utils/sortViewings.ts       Pure past/upcoming split + sort (unit tested with an injectable "now")
+  utils/formatViewingTime.ts   Shared date/time formatting for ViewingList and the Viewings page
 ```
 
 ### Run it
@@ -84,7 +90,7 @@ I haven't run `npm run deploy` in this session — there's no git remote configu
 ### Verified
 
 - `tsc -b` — typechecks clean
-- `vitest run` — 116 tests passing (deck/save logic, swipe button interactions, photo tap-navigation and its boundaries, location/price/bedroom filtering and the collapse/expand toggle, issue reporting/listing/persistence, the issue form's own collapse/expand toggle, the saved-property-required empty state, theme resolution incl. live system-preference changes and persistence, reduce-motion's effect on the swipe animations, the settings page's confirm-before-reset actions, nav bar tab counts/logo/links plus the mobile "More" menu's active-label button, open/select/navigate, and close-on-Escape/outside-click behavior, the Saved page's link-vs-remove separation, property detail rendering/photo-switching/not-found state, and viewing scheduling/persistence/per-property filtering — unit and integration — saved-list rendering and removal, empty and no-matches states)
+- `vitest run` — 129 tests passing (deck/save logic, swipe button interactions, photo tap-navigation and its boundaries, location/price/bedroom filtering and the collapse/expand toggle, issue reporting/listing/persistence, the issue form's own collapse/expand toggle, the saved-property-required empty state, theme resolution incl. live system-preference changes and persistence, reduce-motion's effect on the swipe animations, the settings page's confirm-before-reset actions, nav bar tab counts/logo/links plus the mobile "More" menu's active-label button, open/select/navigate, and close-on-Escape/outside-click behavior, the Saved page's link-vs-remove separation, property detail rendering/photo-switching/not-found state, viewing scheduling/persistence/per-property filtering, and the Viewings page's past/upcoming split, sort order, status badges, and click-through link to the property (incl. a pure-function test suite for the split/sort logic with an injectable clock) — unit and integration — saved-list rendering and removal, empty and no-matches states)
 - `npm run build` — production build succeeds; confirmed the emitted `dist/index.html` references assets with relative (`./assets/...`) paths as expected from the `base: './'` change
 - Dev server confirmed serving the app and `main.tsx` loading (200 OK) — not manually clicked through in a browser in this session, so do a visual pass (`npm run dev`) before treating the UI itself as verified.
 - `npm run deploy` itself was **not** run — no git remote is configured on this repo yet (see "Deploying to GitHub Pages" below).
@@ -94,4 +100,4 @@ I haven't run `npm run deploy` in this session — there's no git remote configu
 - Listing photos are placeholder images (picsum.photos, seeded per listing) — swap for real photos/CDN when there's real data.
 - No backend: properties are hardcoded in `src/data/properties.ts` and saved/passed decisions live in `localStorage`. Wiring to a real API is a later step, not part of this prototype.
 - Issues have no owner-facing UI to change status (Open → In Progress → Resolved) — that's the property owner's side, which this prototype doesn't model. The two seed issues demonstrate what the other statuses look like.
-- Viewing requests are "instant confirmed" client-side (no owner approval step, no reminder/notification) — same reasoning as Issues: the owner's side isn't modeled in this prototype.
+- Viewing requests always start Pending and have no owner-facing UI to mark them Confirmed (same reasoning as Issues: the owner's side isn't modeled in this prototype). The seed data includes confirmed examples so the Viewings page still demonstrates that state.

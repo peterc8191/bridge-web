@@ -1,18 +1,20 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useViewings } from "./useViewings";
+import { seedViewings } from "../data/viewings";
 
 describe("useViewings", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("starts with no viewing requests", () => {
+  it("starts with the seed viewings", () => {
     const { result } = renderHook(() => useViewings());
-    expect(result.current.viewings).toHaveLength(0);
+    expect(result.current.viewings).toHaveLength(seedViewings.length);
+    expect(result.current.viewings.map((v) => v.id)).toEqual(seedViewings.map((v) => v.id));
   });
 
-  it("scheduleViewing appends a new request", () => {
+  it("scheduleViewing appends a new unconfirmed request", () => {
     const { result } = renderHook(() => useViewings());
 
     act(() => {
@@ -24,16 +26,16 @@ describe("useViewings", () => {
       });
     });
 
-    expect(result.current.viewings).toHaveLength(1);
-    const [viewing] = result.current.viewings;
-    expect(viewing.propertyId).toBe("p1");
-    expect(viewing.date).toBe("2026-09-01");
-    expect(viewing.time).toBe("14:00");
-    expect(viewing.note).toBe("Weekend preferred");
-    expect(viewing.createdAt).toBeTruthy();
+    expect(result.current.viewings).toHaveLength(seedViewings.length + 1);
+    const added = result.current.viewings.find((v) => v.propertyId === "p1" && v.date === "2026-09-01");
+    expect(added).toBeDefined();
+    expect(added?.time).toBe("14:00");
+    expect(added?.note).toBe("Weekend preferred");
+    expect(added?.confirmed).toBe(false);
+    expect(added?.createdAt).toBeTruthy();
   });
 
-  it("persists viewings across hook instances via localStorage", () => {
+  it("persists added viewings across hook instances via localStorage", () => {
     const { result, unmount } = renderHook(() => useViewings());
 
     act(() => {
@@ -47,7 +49,7 @@ describe("useViewings", () => {
     unmount();
 
     const { result: second } = renderHook(() => useViewings());
-    expect(second.current.viewings).toHaveLength(1);
-    expect(second.current.viewings[0].propertyId).toBe("p2");
+    expect(second.current.viewings).toHaveLength(seedViewings.length + 1);
+    expect(second.current.viewings.some((v) => v.propertyId === "p2")).toBe(true);
   });
 });

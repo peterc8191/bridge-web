@@ -4,6 +4,7 @@ export interface ViewingRequest {
   date: string;
   time: string;
   note: string;
+  confirmed: boolean;
   createdAt: string;
 }
 

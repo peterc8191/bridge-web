@@ -6,18 +6,20 @@ import "./NavBar.css";
 interface NavBarProps {
   savedCount: number;
   issueCount: number;
+  viewingCount: number;
 }
 
 const linkClassName = ({ isActive }: { isActive: boolean }) =>
   isActive ? "nav-bar__link nav-bar__link--active" : "nav-bar__link";
 
-export function NavBar({ savedCount, issueCount }: NavBarProps) {
+export function NavBar({ savedCount, issueCount, viewingCount }: NavBarProps) {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const moreLinks = [
     { path: "/saved", label: `Saved${savedCount > 0 ? ` (${savedCount})` : ""}` },
+    { path: "/viewings", label: `Viewings${viewingCount > 0 ? ` (${viewingCount})` : ""}` },
     { path: "/issues", label: `Issues${issueCount > 0 ? ` (${issueCount})` : ""}` },
     { path: "/settings", label: "Settings" },
   ];

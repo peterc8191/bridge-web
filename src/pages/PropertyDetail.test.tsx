@@ -53,8 +53,24 @@ describe("PropertyDetail", () => {
 
   it("lists existing viewing requests for this property only", () => {
     const viewings: ViewingRequest[] = [
-      { id: "v1", propertyId: property.id, date: "2026-09-01", time: "09:00", note: "", createdAt: "" },
-      { id: "v2", propertyId: "some-other-property", date: "2026-09-02", time: "10:00", note: "", createdAt: "" },
+      {
+        id: "v1",
+        propertyId: property.id,
+        date: "2026-09-01",
+        time: "09:00",
+        note: "",
+        confirmed: false,
+        createdAt: "",
+      },
+      {
+        id: "v2",
+        propertyId: "some-other-property",
+        date: "2026-09-02",
+        time: "10:00",
+        note: "",
+        confirmed: false,
+        createdAt: "",
+      },
     ];
     renderDetail(`/property/${property.id}`, viewings);
 

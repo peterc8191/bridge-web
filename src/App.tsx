@@ -5,6 +5,7 @@ import { Saved } from "./pages/Saved";
 import { Issues } from "./pages/Issues";
 import { Settings } from "./pages/Settings";
 import { PropertyDetail } from "./pages/PropertyDetail";
+import { Viewings } from "./pages/Viewings";
 import { usePropertyDeck } from "./hooks/usePropertyDeck";
 import { useIssues } from "./hooks/useIssues";
 import { useSettings } from "./hooks/useSettings";
@@ -18,7 +19,7 @@ function App() {
 
   return (
     <>
-      <NavBar savedCount={saved.length} issueCount={issues.length} />
+      <NavBar savedCount={saved.length} issueCount={issues.length} viewingCount={viewings.length} />
       <Routes>
         <Route
           path="/"
@@ -29,6 +30,7 @@ function App() {
           path="/property/:id"
           element={<PropertyDetail viewings={viewings} onScheduleViewing={scheduleViewing} />}
         />
+        <Route path="/viewings" element={<Viewings viewings={viewings} />} />
         <Route path="/issues" element={<Issues saved={saved} issues={issues} onAddIssue={addIssue} />} />
         <Route
           path="/settings"

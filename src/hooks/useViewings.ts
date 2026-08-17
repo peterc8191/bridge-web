@@ -1,4 +1,5 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { seedViewings } from "../data/viewings";
 import type { NewViewingInput, ViewingRequest } from "../types/viewing";
 
 const VIEWINGS_KEY = "bridge:viewing-requests";
@@ -9,7 +10,7 @@ function generateViewingId(): string {
   return `viewing-${viewingSequence}`;
 }
 
-function readViewings(): ViewingRequest[] {
+function readAddedViewings(): ViewingRequest[] {
   try {
     const raw = localStorage.getItem(VIEWINGS_KEY);
     return raw ? (JSON.parse(raw) as ViewingRequest[]) : [];
@@ -18,7 +19,7 @@ function readViewings(): ViewingRequest[] {
   }
 }
 
-function writeViewings(viewings: ViewingRequest[]) {
+function writeAddedViewings(viewings: ViewingRequest[]) {
   try {
     localStorage.setItem(VIEWINGS_KEY, JSON.stringify(viewings));
   } catch {
@@ -27,7 +28,7 @@ function writeViewings(viewings: ViewingRequest[]) {
 }
 
 export function useViewings() {
-  const [viewings, setViewings] = useState<ViewingRequest[]>(() => readViewings());
+  const [addedViewings, setAddedViewings] = useState<ViewingRequest[]>(() => readAddedViewings());
 
   const scheduleViewing = useCallback((input: NewViewingInput) => {
     const viewing: ViewingRequest = {
@@ -36,14 +37,17 @@ export function useViewings() {
       date: input.date,
       time: input.time,
       note: input.note,
+      confirmed: false,
       createdAt: new Date().toISOString(),
     };
-    setViewings((prev) => {
+    setAddedViewings((prev) => {
       const next = [...prev, viewing];
-      writeViewings(next);
+      writeAddedViewings(next);
       return next;
     });
   }, []);
+
+  const viewings = useMemo(() => [...seedViewings, ...addedViewings], [addedViewings]);
 
   return { viewings, scheduleViewing };
 }
