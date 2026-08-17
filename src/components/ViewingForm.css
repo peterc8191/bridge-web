@@ -1,0 +1,43 @@
+.viewing-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 360px;
+}
+
+.viewing-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.viewing-form__field input,
+.viewing-form__field textarea {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  resize: vertical;
+}
+
+.viewing-form__submit {
+  align-self: flex-start;
+  border: none;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.viewing-form__confirmation {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--status-resolved-text);
+}

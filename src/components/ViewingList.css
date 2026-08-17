@@ -1,0 +1,35 @@
+.viewing-list {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 360px;
+}
+
+.viewing-list__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.viewing-list__datetime {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.viewing-list__note {
+  color: var(--color-text-subtle);
+  font-size: 0.8rem;
+}
+
+.viewing-list--empty {
+  margin: 0 0 16px;
+  color: var(--color-text-subtle);
+  font-size: 0.85rem;
+}
