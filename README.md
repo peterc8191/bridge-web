@@ -8,6 +8,8 @@ A Tinder-style swiping app for browsing property listings: one listing at a time
 
 An **Issues** tab lets you report a problem to a property's owner for any listing you've saved: pick the property, add a title and description, and it's added with status "Open". The report form is collapsible (collapsed by default, same pattern as the Discover filter bar) so it doesn't crowd out the issues list. The tab lists every reported issue (newest first) with its status (Open / In Progress / Resolved) and which property it's about — a couple of issues are seeded for demo purposes so the tab isn't empty on first load. Reporting is disabled with a hint until you've saved at least one property, since issues are always tied to a specific listing.
 
+The nav bar is responsive: below 640px wide, Saved/Issues/Settings collapse into a single "More" button so the bar doesn't crowd on mobile — Discover stays a direct link either way. The button is styled to match the other nav links (same text, weight, and active underline, no button chrome), just with a small chevron, so it reads as part of the nav rather than a distinct control. It shows the active route's name in place of "More" when you're on one of those three screens, and clicking it opens a small styled menu (not a native `<select>`, so it's fully themed and matches the rest of the app) that closes on selection, on Escape, or on an outside click.
+
 A **Settings** tab holds:
 - **Theme** — System / Light / Dark, defaulting to System (follows the OS preference live, including if it changes while the app is open). The whole app is re-themed via CSS custom properties in `src/index.css`, not just the settings page — colors, borders, and status badges all switch. Listing photo cards intentionally stay black/white-on-photo in both themes (readability over real photos, not app chrome).
 - **Reduce motion** — turns off the swipe/spring animations on the Discover screen (durations drop to 0 and the card-stack transition is disabled) for motion-sensitive users. Drag-to-swipe itself still works; only the animated transitions are removed.
@@ -36,7 +38,7 @@ src/
     IssueForm.tsx            Collapsible report-an-issue form (property picker + title + description)
     IssueList.tsx            Reported issues list, newest first, with status badges
     StatusBadge.tsx          Open / In Progress / Resolved badge
-    NavBar.tsx              Discover / Saved / Issues / Settings navigation
+    NavBar.tsx              Discover / Saved / Issues / Settings navigation; collapses to a "More" menu button under 640px
   pages/
     Discover.tsx            Swipe deck screen ("/") — owns filter state, derives the filtered deck
     Saved.tsx                Saved listings screen ("/saved")
@@ -75,7 +77,7 @@ I haven't run `npm run deploy` in this session — there's no git remote configu
 ### Verified
 
 - `tsc -b` — typechecks clean
-- `vitest run` — 92 tests passing (deck/save logic, swipe button interactions, photo tap-navigation and its boundaries, location/price/bedroom filtering and the collapse/expand toggle, issue reporting/listing/persistence, the issue form's own collapse/expand toggle, the saved-property-required empty state, theme resolution incl. live system-preference changes and persistence, reduce-motion's effect on the swipe animations, the settings page's confirm-before-reset actions, nav bar tab counts/logo/Settings link — unit and integration — saved-list rendering and removal, empty and no-matches states)
+- `vitest run` — 98 tests passing (deck/save logic, swipe button interactions, photo tap-navigation and its boundaries, location/price/bedroom filtering and the collapse/expand toggle, issue reporting/listing/persistence, the issue form's own collapse/expand toggle, the saved-property-required empty state, theme resolution incl. live system-preference changes and persistence, reduce-motion's effect on the swipe animations, the settings page's confirm-before-reset actions, nav bar tab counts/logo/links plus the mobile "More" menu's active-label button, open/select/navigate, and close-on-Escape/outside-click behavior — unit and integration — saved-list rendering and removal, empty and no-matches states)
 - `npm run build` — production build succeeds; confirmed the emitted `dist/index.html` references assets with relative (`./assets/...`) paths as expected from the `base: './'` change
 - Dev server confirmed serving the app and `main.tsx` loading (200 OK) — not manually clicked through in a browser in this session, so do a visual pass (`npm run dev`) before treating the UI itself as verified.
 - `npm run deploy` itself was **not** run — no git remote is configured on this repo yet (see "Deploying to GitHub Pages" below).
