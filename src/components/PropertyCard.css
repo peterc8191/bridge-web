@@ -1,0 +1,116 @@
+/* Colors here are intentionally hardcoded, not theme tokens - this overlays
+   real listing photos and needs the same high-contrast white-on-black
+   treatment regardless of the app's light/dark theme. */
+.property-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+  background: #111;
+  touch-action: none;
+}
+
+.property-card:active {
+  cursor: grabbing;
+}
+
+.property-card__image {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+}
+
+.property-card__progress {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  z-index: 3;
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.property-card__progress-segment {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.property-card__progress-segment--active {
+  background: #fff;
+}
+
+.property-card__nav-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  z-index: 2;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.property-card__nav-zone:disabled {
+  cursor: default;
+}
+
+.property-card__nav-zone--left {
+  left: 0;
+}
+
+.property-card__nav-zone--right {
+  right: 0;
+}
+
+.property-card__gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.15) 45%, transparent 70%);
+}
+
+.property-card__info {
+  position: relative;
+  z-index: 1;
+  padding: 20px;
+  color: #fff;
+}
+
+.property-card__info h2 {
+  margin: 0 0 2px;
+  font-size: 1.4rem;
+}
+
+.property-card__city {
+  margin: 0 0 8px;
+  opacity: 0.85;
+  font-size: 0.95rem;
+}
+
+.property-card__price {
+  margin: 0 0 4px;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.property-card__specs {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.property-card__description {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+  max-width: 34ch;
+}

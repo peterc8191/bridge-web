@@ -1,0 +1,75 @@
+.filter-bar {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.filter-bar__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.filter-bar__chevron {
+  font-size: 0.7rem;
+  color: var(--color-text-subtle);
+}
+
+.filter-bar__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.filter-bar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  flex: 1 1 120px;
+}
+
+.filter-bar__field select,
+.filter-bar__field input {
+  font-size: 0.9rem;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.filter-bar__clear {
+  border: none;
+  background: none;
+  color: var(--color-accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+
+.filter-bar__clear:hover {
+  text-decoration: underline;
+}
+
+.filter-bar__count {
+  margin: 10px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-subtle);
+}

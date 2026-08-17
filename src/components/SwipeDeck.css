@@ -1,0 +1,38 @@
+.swipe-deck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.swipe-deck__stack {
+  position: relative;
+  width: min(380px, 90vw);
+  height: min(560px, 65vh);
+}
+
+.swipe-deck__card-slot {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.2s ease;
+}
+
+.swipe-deck--empty {
+  width: min(380px, 90vw);
+  height: min(560px, 65vh);
+  border-radius: 20px;
+  border: 2px dashed var(--color-dashed-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--color-text-muted);
+}
+
+.swipe-deck__empty-hint {
+  color: var(--color-text-subtle);
+  font-size: 0.9rem;
+}

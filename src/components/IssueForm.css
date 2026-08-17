@@ -1,0 +1,71 @@
+.issue-form {
+  max-width: 480px;
+  margin: 0 auto 32px;
+  padding: 18px;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+
+.issue-form__toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.issue-form__chevron {
+  font-size: 0.7rem;
+  color: var(--color-text-subtle);
+}
+
+.issue-form__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.issue-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.issue-form__field select,
+.issue-form__field input,
+.issue-form__field textarea {
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  resize: vertical;
+}
+
+.issue-form__submit {
+  align-self: flex-start;
+  border: none;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.issue-form--empty {
+  text-align: center;
+  color: var(--color-text-subtle);
+}

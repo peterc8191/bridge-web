@@ -1,0 +1,26 @@
+.discover-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+}
+
+.discover-page__no-matches {
+  width: min(380px, 90vw);
+  height: min(560px, 65vh);
+  border-radius: 20px;
+  border: 2px dashed var(--color-dashed-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 24px;
+  color: var(--color-text-muted);
+}
+
+.discover-page__no-matches-hint {
+  color: var(--color-text-subtle);
+  font-size: 0.85rem;
+}

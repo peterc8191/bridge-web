@@ -1,0 +1,34 @@
+.action-buttons {
+  display: flex;
+  gap: 28px;
+}
+
+.action-buttons__btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  font-size: 1.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 16px var(--color-shadow);
+  transition: transform 0.15s ease;
+}
+
+.action-buttons__btn:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.action-buttons__btn--pass {
+  background: var(--color-surface);
+  color: var(--color-accent);
+  border: 2px solid var(--color-accent);
+}
+
+.action-buttons__btn--like {
+  background: var(--color-surface);
+  color: var(--color-like);
+  border: 2px solid var(--color-like);
+}
