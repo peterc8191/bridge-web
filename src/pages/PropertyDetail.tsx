@@ -1,23 +1,20 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { properties } from "../data/properties";
+import type { Property } from "../types/property";
 import type { NewViewingInput, ViewingRequest } from "../types/viewing";
 import { ViewingForm } from "../components/ViewingForm";
 import { ViewingList } from "../components/ViewingList";
+import { ListingTypeBadge } from "../components/ListingTypeBadge";
+import { formatPrice } from "../utils/formatPrice";
 import "./PropertyDetail.css";
 
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
-
 interface PropertyDetailProps {
+  properties: Property[];
   viewings: ViewingRequest[];
   onScheduleViewing: (input: NewViewingInput) => void;
 }
 
-export function PropertyDetail({ viewings, onScheduleViewing }: PropertyDetailProps) {
+export function PropertyDetail({ properties, viewings, onScheduleViewing }: PropertyDetailProps) {
   const { id } = useParams<{ id: string }>();
   const property = properties.find((candidate) => candidate.id === id);
   const [activeImage, setActiveImage] = useState(0);
@@ -67,7 +64,12 @@ export function PropertyDetail({ viewings, onScheduleViewing }: PropertyDetailPr
       <div className="property-detail__info">
         <h1>{property.address}</h1>
         <p className="property-detail__city">{property.city}</p>
-        <p className="property-detail__price">{currency.format(property.price)}</p>
+        <div className="property-detail__price-row">
+          <span className="property-detail__price">
+            {formatPrice(property.price, property.listingType)}
+          </span>
+          <ListingTypeBadge listingType={property.listingType} />
+        </div>
         <p className="property-detail__specs">
           {property.beds} bed · {property.baths} bath · {property.sqft.toLocaleString()} sqft
         </p>

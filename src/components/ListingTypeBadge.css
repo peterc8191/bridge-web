@@ -1,0 +1,19 @@
+.listing-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.listing-type-badge--sale {
+  background: var(--listing-sale-bg);
+  color: var(--listing-sale-text);
+}
+
+.listing-type-badge--rent {
+  background: var(--listing-rent-bg);
+  color: var(--listing-rent-text);
+}

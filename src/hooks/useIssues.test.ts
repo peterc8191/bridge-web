@@ -88,4 +88,49 @@ describe("useIssues", () => {
     const { result: second } = renderHook(() => useIssues());
     expect(second.current.issues).toHaveLength(seedIssues.length);
   });
+
+  describe("updateIssueStatus", () => {
+    it("changes the status of a seed issue", () => {
+      const { result } = renderHook(() => useIssues());
+      const target = seedIssues[0];
+
+      act(() => {
+        result.current.updateIssueStatus(target.id, "resolved");
+      });
+
+      expect(result.current.issues.find((i) => i.id === target.id)?.status).toBe("resolved");
+    });
+
+    it("changes the status of a user-added issue", () => {
+      const { result } = renderHook(() => useIssues());
+
+      act(() => {
+        result.current.addIssue({
+          propertyId: "p2",
+          title: "Broken thermostat",
+          description: "The thermostat doesn't respond to changes.",
+        });
+      });
+      const added = result.current.issues.find((i) => i.title === "Broken thermostat")!;
+
+      act(() => {
+        result.current.updateIssueStatus(added.id, "in-progress");
+      });
+
+      expect(result.current.issues.find((i) => i.id === added.id)?.status).toBe("in-progress");
+    });
+
+    it("persists a status change across hook instances", () => {
+      const { result, unmount } = renderHook(() => useIssues());
+      const target = seedIssues[0];
+
+      act(() => {
+        result.current.updateIssueStatus(target.id, "resolved");
+      });
+      unmount();
+
+      const { result: second } = renderHook(() => useIssues());
+      expect(second.current.issues.find((i) => i.id === target.id)?.status).toBe("resolved");
+    });
+  });
 });

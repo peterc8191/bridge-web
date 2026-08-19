@@ -3,6 +3,7 @@ import { seedViewings } from "../data/viewings";
 import type { NewViewingInput, ViewingRequest } from "../types/viewing";
 
 const VIEWINGS_KEY = "bridge:viewing-requests";
+const CONFIRMED_KEY = "bridge:confirmed-viewing-ids";
 
 let viewingSequence = 0;
 function generateViewingId(): string {
@@ -27,8 +28,26 @@ function writeAddedViewings(viewings: ViewingRequest[]) {
   }
 }
 
+function readConfirmedIds(): string[] {
+  try {
+    const raw = localStorage.getItem(CONFIRMED_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeConfirmedIds(ids: string[]) {
+  try {
+    localStorage.setItem(CONFIRMED_KEY, JSON.stringify(ids));
+  } catch {
+    // localStorage unavailable - confirmations just won't persist.
+  }
+}
+
 export function useViewings() {
   const [addedViewings, setAddedViewings] = useState<ViewingRequest[]>(() => readAddedViewings());
+  const [confirmedIds, setConfirmedIds] = useState<string[]>(() => readConfirmedIds());
 
   const scheduleViewing = useCallback((input: NewViewingInput) => {
     const viewing: ViewingRequest = {
@@ -47,7 +66,22 @@ export function useViewings() {
     });
   }, []);
 
-  const viewings = useMemo(() => [...seedViewings, ...addedViewings], [addedViewings]);
+  const confirmViewing = useCallback((viewingId: string) => {
+    setConfirmedIds((prev) => {
+      if (prev.includes(viewingId)) return prev;
+      const next = [...prev, viewingId];
+      writeConfirmedIds(next);
+      return next;
+    });
+  }, []);
 
-  return { viewings, scheduleViewing };
+  const viewings = useMemo(
+    () =>
+      [...seedViewings, ...addedViewings].map((viewing) =>
+        confirmedIds.includes(viewing.id) ? { ...viewing, confirmed: true } : viewing,
+      ),
+    [addedViewings, confirmedIds],
+  );
+
+  return { viewings, scheduleViewing, confirmViewing };
 }

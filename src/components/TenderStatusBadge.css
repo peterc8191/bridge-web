@@ -1,0 +1,24 @@
+.tender-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tender-status-badge--pending {
+  background: var(--status-progress-bg);
+  color: var(--status-progress-text);
+}
+
+.tender-status-badge--accepted {
+  background: var(--status-resolved-bg);
+  color: var(--status-resolved-text);
+}
+
+.tender-status-badge--rejected {
+  background: var(--status-open-bg);
+  color: var(--status-open-text);
+}

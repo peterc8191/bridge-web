@@ -105,3 +105,20 @@
   background: var(--status-progress-bg);
   color: var(--status-progress-text);
 }
+
+.viewings-page__confirm-btn {
+  display: block;
+  width: calc(100% - 28px);
+  margin: 0 14px 12px;
+  border: 1px solid var(--status-resolved-text);
+  background: none;
+  color: var(--status-resolved-text);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.viewings-page__confirm-btn:hover {
+  background: var(--status-resolved-bg);
+}

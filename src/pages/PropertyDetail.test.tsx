@@ -14,7 +14,13 @@ function renderDetail(path: string, viewings: ViewingRequest[] = [], onScheduleV
       <Routes>
         <Route
           path="/property/:id"
-          element={<PropertyDetail viewings={viewings} onScheduleViewing={onScheduleViewing} />}
+          element={
+            <PropertyDetail
+              properties={properties}
+              viewings={viewings}
+              onScheduleViewing={onScheduleViewing}
+            />
+          }
         />
         <Route path="/saved" element={<div>Saved page</div>} />
       </Routes>
@@ -37,6 +43,19 @@ describe("PropertyDetail", () => {
     expect(
       screen.getByText(`${property.beds} bed · ${property.baths} bath · ${property.sqft.toLocaleString()} sqft`),
     ).toBeInTheDocument();
+  });
+
+  it("shows the formatted price and listing-type badge", () => {
+    renderDetail(`/property/${property.id}`);
+    expect(screen.getByText("$549,000")).toBeInTheDocument();
+    expect(screen.getByText("For Sale")).toBeInTheDocument();
+  });
+
+  it("formats a rental's price per month with a For Rent badge", () => {
+    const rental = properties.find((p) => p.listingType === "rent")!;
+    renderDetail(`/property/${rental.id}`);
+    expect(screen.getByText(`$${rental.price.toLocaleString()}/mo`)).toBeInTheDocument();
+    expect(screen.getByText("For Rent")).toBeInTheDocument();
   });
 
   it("starts on the first photo and switches on thumbnail click", async () => {

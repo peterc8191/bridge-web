@@ -77,6 +77,27 @@ describe("FilterBar", () => {
     expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, location: "Austin, TX" });
   });
 
+  it("calls onChange with the selected listing type", async () => {
+    const onChange = vi.fn();
+    await renderExpanded({ filters: defaultFilters, onChange, locations, resultCount: 7 });
+
+    await userEvent.selectOptions(screen.getByLabelText(/listing type/i), "rent");
+    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, listingType: "rent" });
+  });
+
+  it("calls onChange with null listing type when reset to 'Sale or rent'", async () => {
+    const onChange = vi.fn();
+    await renderExpanded({
+      filters: { ...defaultFilters, listingType: "rent" },
+      onChange,
+      locations,
+      resultCount: 7,
+    });
+
+    await userEvent.selectOptions(screen.getByLabelText(/listing type/i), "Sale or rent");
+    expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, listingType: null });
+  });
+
   it("calls onChange with a numeric min price", async () => {
     const onChange = vi.fn();
     await renderExpanded({ filters: defaultFilters, onChange, locations, resultCount: 7 });

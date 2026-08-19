@@ -1,16 +1,30 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import type { Property } from "../types/property";
 import type { ViewingRequest } from "../types/viewing";
-import { properties } from "../data/properties";
+import type { AuthUser } from "../types/auth";
 import { splitViewingsByTime } from "../utils/sortViewings";
 import { formatViewingDate, formatViewingTime } from "../utils/formatViewingTime";
 import "./Viewings.css";
 
 interface ViewingsProps {
+  properties: Property[];
   viewings: ViewingRequest[];
+  currentUser: AuthUser | null;
+  onConfirmViewing: (viewingId: string) => void;
 }
 
-function ViewingRow({ viewing }: { viewing: ViewingRequest }) {
+function ViewingRow({
+  viewing,
+  properties,
+  canConfirm,
+  onConfirmViewing,
+}: {
+  viewing: ViewingRequest;
+  properties: Property[];
+  canConfirm: boolean;
+  onConfirmViewing: (viewingId: string) => void;
+}) {
   const property = properties.find((candidate) => candidate.id === viewing.propertyId);
 
   return (
@@ -35,12 +49,22 @@ function ViewingRow({ viewing }: { viewing: ViewingRequest }) {
           {viewing.confirmed ? "Confirmed" : "Pending"}
         </span>
       </Link>
+      {canConfirm && !viewing.confirmed && (
+        <button
+          type="button"
+          className="viewings-page__confirm-btn"
+          onClick={() => onConfirmViewing(viewing.id)}
+        >
+          Confirm viewing
+        </button>
+      )}
     </li>
   );
 }
 
-export function Viewings({ viewings }: ViewingsProps) {
+export function Viewings({ properties, viewings, currentUser, onConfirmViewing }: ViewingsProps) {
   const { upcoming, past } = useMemo(() => splitViewingsByTime(viewings), [viewings]);
+  const canConfirm = currentUser?.role === "landlord";
 
   if (viewings.length === 0) {
     return (
@@ -60,7 +84,13 @@ export function Viewings({ viewings }: ViewingsProps) {
         ) : (
           <ul className="viewings-page__list" data-testid="upcoming-viewings">
             {upcoming.map((viewing) => (
-              <ViewingRow key={viewing.id} viewing={viewing} />
+              <ViewingRow
+                key={viewing.id}
+                viewing={viewing}
+                properties={properties}
+                canConfirm={canConfirm}
+                onConfirmViewing={onConfirmViewing}
+              />
             ))}
           </ul>
         )}
@@ -73,7 +103,13 @@ export function Viewings({ viewings }: ViewingsProps) {
         ) : (
           <ul className="viewings-page__list" data-testid="past-viewings">
             {past.map((viewing) => (
-              <ViewingRow key={viewing.id} viewing={viewing} />
+              <ViewingRow
+                key={viewing.id}
+                viewing={viewing}
+                properties={properties}
+                canConfirm={canConfirm}
+                onConfirmViewing={onConfirmViewing}
+              />
             ))}
           </ul>
         )}

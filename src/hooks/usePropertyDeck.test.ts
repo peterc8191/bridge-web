@@ -9,13 +9,13 @@ describe("usePropertyDeck", () => {
   });
 
   it("starts with the full deck and an empty saved list", () => {
-    const { result } = renderHook(() => usePropertyDeck());
+    const { result } = renderHook(() => usePropertyDeck(properties));
     expect(result.current.deck).toHaveLength(properties.length);
     expect(result.current.saved).toHaveLength(0);
   });
 
   it("swiping right removes the property from the deck and adds it to saved", () => {
-    const { result } = renderHook(() => usePropertyDeck());
+    const { result } = renderHook(() => usePropertyDeck(properties));
     const first = result.current.deck[0];
 
     act(() => {
@@ -27,7 +27,7 @@ describe("usePropertyDeck", () => {
   });
 
   it("swiping left removes the property from the deck without saving it", () => {
-    const { result } = renderHook(() => usePropertyDeck());
+    const { result } = renderHook(() => usePropertyDeck(properties));
     const first = result.current.deck[0];
 
     act(() => {
@@ -39,7 +39,7 @@ describe("usePropertyDeck", () => {
   });
 
   it("removeSaved takes a property out of the saved list", () => {
-    const { result } = renderHook(() => usePropertyDeck());
+    const { result } = renderHook(() => usePropertyDeck(properties));
     const first = result.current.deck[0];
 
     act(() => {
@@ -55,14 +55,14 @@ describe("usePropertyDeck", () => {
 
   it("persists decisions across hook instances via localStorage", () => {
     const first = properties[0];
-    const { result, unmount } = renderHook(() => usePropertyDeck());
+    const { result, unmount } = renderHook(() => usePropertyDeck(properties));
 
     act(() => {
       result.current.decide(first, "right");
     });
     unmount();
 
-    const { result: second } = renderHook(() => usePropertyDeck());
+    const { result: second } = renderHook(() => usePropertyDeck(properties));
     expect(second.current.saved.map((p) => p.id)).toContain(first.id);
     expect(second.current.deck.find((p) => p.id === first.id)).toBeUndefined();
   });

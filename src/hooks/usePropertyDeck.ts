@@ -1,5 +1,4 @@
 import { useCallback, useMemo, useState } from "react";
-import { properties } from "../data/properties";
 import type { Property } from "../types/property";
 
 export type SwipeDirection = "left" | "right";
@@ -24,18 +23,18 @@ function writeIds(key: string, ids: string[]) {
   }
 }
 
-export function usePropertyDeck() {
+export function usePropertyDeck(properties: Property[]) {
   const [savedIds, setSavedIds] = useState<string[]>(() => readIds(SAVED_KEY));
   const [decidedIds, setDecidedIds] = useState<string[]>(() => readIds(DECIDED_KEY));
 
   const deck = useMemo(
     () => properties.filter((property) => !decidedIds.includes(property.id)),
-    [decidedIds],
+    [properties, decidedIds],
   );
 
   const saved = useMemo(
     () => properties.filter((property) => savedIds.includes(property.id)),
-    [savedIds],
+    [properties, savedIds],
   );
 
   const decide = useCallback((property: Property, direction: SwipeDirection) => {

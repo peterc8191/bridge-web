@@ -9,6 +9,7 @@ const propertyA: Property = {
   address: "1 Test Way",
   city: "Austin, TX",
   price: 300000,
+  listingType: "sale",
   beds: 2,
   baths: 1,
   sqft: 900,
@@ -21,6 +22,7 @@ const propertyB: Property = {
   address: "2 Test Way",
   city: "Austin, TX",
   price: 800000,
+  listingType: "sale",
   beds: 4,
   baths: 3,
   sqft: 2000,
@@ -32,7 +34,8 @@ const propertyC: Property = {
   id: "c",
   address: "3 Test Way",
   city: "Denver, CO",
-  price: 500000,
+  price: 1500,
+  listingType: "rent",
   beds: 3,
   baths: 2,
   sqft: 1400,
@@ -70,6 +73,16 @@ describe("Discover filters", () => {
     await expandFilters();
 
     await userEvent.selectOptions(screen.getByLabelText(/location/i), "Denver, CO");
+
+    expect(screen.getByRole("heading", { name: propertyC.address })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: propertyA.address })).not.toBeInTheDocument();
+  });
+
+  it("filtering by listing type narrows the deck shown", async () => {
+    render(<Discover deck={deck} onDecide={vi.fn()} />);
+    await expandFilters();
+
+    await userEvent.selectOptions(screen.getByLabelText(/listing type/i), "rent");
 
     expect(screen.getByRole("heading", { name: propertyC.address })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: propertyA.address })).not.toBeInTheDocument();

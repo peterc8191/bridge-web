@@ -38,6 +38,7 @@ describe("filterProperties", () => {
       minPrice: 300000,
       maxPrice: 700000,
       minBeds: 3,
+      listingType: null,
     });
     expect(
       result.every((p) => p.price >= 300000 && p.price <= 700000 && p.beds >= 3),
@@ -47,6 +48,18 @@ describe("filterProperties", () => {
   it("returns an empty list when nothing matches", () => {
     const result = filterProperties(properties, { ...defaultFilters, minPrice: 10_000_000 });
     expect(result).toHaveLength(0);
+  });
+
+  it("filters by listing type", () => {
+    const rentals = filterProperties(properties, { ...defaultFilters, listingType: "rent" });
+    expect(rentals.length).toBeGreaterThan(0);
+    expect(rentals.every((p) => p.listingType === "rent")).toBe(true);
+
+    const sales = filterProperties(properties, { ...defaultFilters, listingType: "sale" });
+    expect(sales.length).toBeGreaterThan(0);
+    expect(sales.every((p) => p.listingType === "sale")).toBe(true);
+
+    expect(rentals.length + sales.length).toBe(properties.length);
   });
 });
 
@@ -60,5 +73,6 @@ describe("hasActiveFilters", () => {
     expect(hasActiveFilters({ ...defaultFilters, minPrice: 100 })).toBe(true);
     expect(hasActiveFilters({ ...defaultFilters, maxPrice: 100 })).toBe(true);
     expect(hasActiveFilters({ ...defaultFilters, minBeds: 1 })).toBe(true);
+    expect(hasActiveFilters({ ...defaultFilters, listingType: "rent" })).toBe(true);
   });
 });

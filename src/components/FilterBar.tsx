@@ -1,9 +1,13 @@
 import { useState } from "react";
-import type { PropertyFilters } from "../types/property";
+import type { ListingType, PropertyFilters } from "../types/property";
 import { countActiveFilters, defaultFilters, hasActiveFilters } from "../utils/filterProperties";
 import "./FilterBar.css";
 
 const BEDROOM_OPTIONS = [1, 2, 3, 4];
+const LISTING_TYPE_OPTIONS: { value: ListingType; label: string }[] = [
+  { value: "sale", label: "For Sale" },
+  { value: "rent", label: "For Rent" },
+];
 
 interface FilterBarProps {
   filters: PropertyFilters;
@@ -40,6 +44,26 @@ export function FilterBar({ filters, onChange, locations, resultCount }: FilterB
 
       {expanded && (
         <div className="filter-bar__row" id="filter-bar-controls">
+          <label className="filter-bar__field">
+            <span>Listing type</span>
+            <select
+              value={filters.listingType ?? ""}
+              onChange={(event) =>
+                onChange({
+                  ...filters,
+                  listingType: event.target.value === "" ? null : (event.target.value as ListingType),
+                })
+              }
+            >
+              <option value="">Sale or rent</option>
+              {LISTING_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="filter-bar__field">
             <span>Location</span>
             <select

@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { seedIssues } from "../data/issues";
-import type { Issue, NewIssueInput } from "../types/issue";
+import type { Issue, IssueStatus, NewIssueInput } from "../types/issue";
 
 const ADDED_ISSUES_KEY = "bridge:added-issues";
+const STATUS_OVERRIDES_KEY = "bridge:issue-status-overrides";
 
 let issueSequence = 0;
 function generateIssueId(): string {
@@ -27,8 +28,28 @@ function writeAddedIssues(issues: Issue[]) {
   }
 }
 
+function readStatusOverrides(): Record<string, IssueStatus> {
+  try {
+    const raw = localStorage.getItem(STATUS_OVERRIDES_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, IssueStatus>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeStatusOverrides(overrides: Record<string, IssueStatus>) {
+  try {
+    localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(overrides));
+  } catch {
+    // localStorage unavailable - status changes just won't persist.
+  }
+}
+
 export function useIssues() {
   const [addedIssues, setAddedIssues] = useState<Issue[]>(() => readAddedIssues());
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, IssueStatus>>(() =>
+    readStatusOverrides(),
+  );
 
   const addIssue = useCallback((input: NewIssueInput) => {
     const issue: Issue = {
@@ -51,7 +72,21 @@ export function useIssues() {
     writeAddedIssues([]);
   }, []);
 
-  const issues = useMemo(() => [...seedIssues, ...addedIssues], [addedIssues]);
+  const updateIssueStatus = useCallback((issueId: string, status: IssueStatus) => {
+    setStatusOverrides((prev) => {
+      const next = { ...prev, [issueId]: status };
+      writeStatusOverrides(next);
+      return next;
+    });
+  }, []);
 
-  return { issues, addIssue, clearAddedIssues };
+  const issues = useMemo(
+    () =>
+      [...seedIssues, ...addedIssues].map((issue) =>
+        statusOverrides[issue.id] ? { ...issue, status: statusOverrides[issue.id] } : issue,
+      ),
+    [addedIssues, statusOverrides],
+  );
+
+  return { issues, addIssue, clearAddedIssues, updateIssueStatus };
 }

@@ -1,12 +1,8 @@
 import { Link } from "react-router-dom";
 import type { Property } from "../types/property";
+import { ListingTypeBadge } from "../components/ListingTypeBadge";
+import { formatPrice } from "../utils/formatPrice";
 import "./Saved.css";
-
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
 
 interface SavedProps {
   saved: Property[];
@@ -36,7 +32,12 @@ export function Saved({ saved, onRemove }: SavedProps) {
               <div className="saved-list__body">
                 <h3>{property.address}</h3>
                 <p className="saved-list__city">{property.city}</p>
-                <p className="saved-list__price">{currency.format(property.price)}</p>
+                <div className="saved-list__price-row">
+                  <span className="saved-list__price">
+                    {formatPrice(property.price, property.listingType)}
+                  </span>
+                  <ListingTypeBadge listingType={property.listingType} />
+                </div>
                 <p className="saved-list__specs">
                   {property.beds} bed · {property.baths} bath · {property.sqft.toLocaleString()} sqft
                 </p>

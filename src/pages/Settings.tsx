@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import type { ResolvedTheme, Theme } from "../types/settings";
+import type { AuthUser, UserRole } from "../types/auth";
 import "./Settings.css";
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -7,7 +9,15 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
+const ROLE_LABELS: Record<UserRole, string> = {
+  user: "User",
+  landlord: "Landlord",
+  tradesperson: "Tradesperson",
+};
+
 interface SettingsProps {
+  currentUser: AuthUser | null;
+  onLogout: () => void;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   resolvedTheme: ResolvedTheme;
@@ -18,6 +28,8 @@ interface SettingsProps {
 }
 
 export function Settings({
+  currentUser,
+  onLogout,
   theme,
   onThemeChange,
   resolvedTheme,
@@ -40,6 +52,33 @@ export function Settings({
 
   return (
     <main className="settings-page">
+      <section className="settings-section">
+        <h2>Account</h2>
+        {currentUser ? (
+          <>
+            <p className="settings-account-info">
+              Signed in as <strong>{currentUser.email}</strong> (
+              <span className="settings-account-role">{ROLE_LABELS[currentUser.role]}</span>)
+            </p>
+            <button type="button" className="settings-btn" onClick={onLogout}>
+              Log out
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="settings-hint">You're not signed in.</p>
+            <div className="settings-actions">
+              <Link to="/login" className="settings-btn">
+                Log in
+              </Link>
+              <Link to="/register" className="settings-btn">
+                Create an account
+              </Link>
+            </div>
+          </>
+        )}
+      </section>
+
       <section className="settings-section">
         <h2>Appearance</h2>
         <fieldset className="settings-theme">

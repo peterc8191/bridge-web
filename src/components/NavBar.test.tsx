@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { NavBar } from "./NavBar";
+import type { AuthUser } from "../types/auth";
 
 function LocationProbe() {
   const location = useLocation();
@@ -11,12 +12,30 @@ function LocationProbe() {
 
 function renderNavBar(
   initialPath = "/",
-  counts: { savedCount?: number; issueCount?: number; viewingCount?: number } = {},
+  options: {
+    savedCount?: number;
+    issueCount?: number;
+    viewingCount?: number;
+    currentUser?: AuthUser | null;
+    onLogout?: () => void;
+  } = {},
 ) {
-  const { savedCount = 0, issueCount = 0, viewingCount = 0 } = counts;
+  const {
+    savedCount = 0,
+    issueCount = 0,
+    viewingCount = 0,
+    currentUser = null,
+    onLogout = vi.fn(),
+  } = options;
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <NavBar savedCount={savedCount} issueCount={issueCount} viewingCount={viewingCount} />
+      <NavBar
+        savedCount={savedCount}
+        issueCount={issueCount}
+        viewingCount={viewingCount}
+        currentUser={currentUser}
+        onLogout={onLogout}
+      />
       <LocationProbe />
     </MemoryRouter>,
   );
@@ -108,6 +127,91 @@ describe("NavBar", () => {
 
       await userEvent.click(document.body);
       expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("auth", () => {
+    it("shows a Log in link to /login when logged out", () => {
+      renderNavBar("/", { currentUser: null });
+      expect(screen.getByRole("link", { name: /log in/i })).toHaveAttribute("href", "/login");
+      expect(screen.queryByRole("button", { name: /log out/i })).not.toBeInTheDocument();
+    });
+
+    it("shows a Log out button when logged in, and calls onLogout when clicked", async () => {
+      const onLogout = vi.fn();
+      renderNavBar("/", {
+        currentUser: { id: "u1", email: "user@example.com", role: "user" },
+        onLogout,
+      });
+
+      expect(screen.queryByRole("link", { name: /log in/i })).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: /log out/i }));
+      expect(onLogout).toHaveBeenCalledTimes(1);
+    });
+
+    it("includes Log in as a menu item in the mobile More menu when logged out", async () => {
+      renderNavBar("/");
+      await userEvent.click(screen.getByRole("button", { name: /^more/i }));
+      const menu = screen.getByRole("menu");
+      expect(within(menu).getByRole("menuitem", { name: /log in/i })).toHaveAttribute(
+        "href",
+        "/login",
+      );
+    });
+
+    it("includes Log out as a menu item in the mobile More menu when logged in, closing the menu on click", async () => {
+      const onLogout = vi.fn();
+      renderNavBar("/", {
+        currentUser: { id: "u1", email: "user@example.com", role: "user" },
+        onLogout,
+      });
+
+      await userEvent.click(screen.getByRole("button", { name: /^more/i }));
+      const menu = screen.getByRole("menu");
+      await userEvent.click(within(menu).getByRole("menuitem", { name: /log out/i }));
+
+      expect(onLogout).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    });
+  });
+
+  describe("landlord-only Manage listings entry", () => {
+    it("does not show Manage listings for a generic user", () => {
+      renderNavBar("/", { currentUser: { id: "u1", email: "usera@abc.com", role: "user" } });
+      expect(screen.queryByRole("link", { name: /manage listings/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show Manage listings when logged out", () => {
+      renderNavBar("/");
+      expect(screen.queryByRole("link", { name: /manage listings/i })).not.toBeInTheDocument();
+    });
+
+    it("shows Manage listings for a landlord, linking to /manage-listings", () => {
+      renderNavBar("/", { currentUser: { id: "u1", email: "landlorda@abc.com", role: "landlord" } });
+      expect(screen.getByRole("link", { name: /manage listings/i })).toHaveAttribute(
+        "href",
+        "/manage-listings",
+      );
+    });
+  });
+
+  describe("tradesperson-only Trader profile entry", () => {
+    it("does not show Trader profile for a generic user", () => {
+      renderNavBar("/", { currentUser: { id: "u1", email: "usera@abc.com", role: "user" } });
+      expect(screen.queryByRole("link", { name: /trader profile/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show Trader profile for a landlord", () => {
+      renderNavBar("/", { currentUser: { id: "u1", email: "landlorda@abc.com", role: "landlord" } });
+      expect(screen.queryByRole("link", { name: /trader profile/i })).not.toBeInTheDocument();
+    });
+
+    it("shows Trader profile for a tradesperson, linking to /trader-profile", () => {
+      renderNavBar("/", { currentUser: { id: "u3", email: "tradea@abc.com", role: "tradesperson" } });
+      expect(screen.getByRole("link", { name: /trader profile/i })).toHaveAttribute(
+        "href",
+        "/trader-profile",
+      );
     });
   });
 });

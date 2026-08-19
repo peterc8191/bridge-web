@@ -22,6 +22,10 @@
   --status-progress-text: #a15c00;
   --status-resolved-bg: #e0f6e9;
   --status-resolved-text: #157a45;
+  --listing-sale-bg: #e3ecff;
+  --listing-sale-text: #1e4fd6;
+  --listing-rent-bg: #e0f7f2;
+  --listing-rent-text: #0f8a72;
 }
 
 :root[data-theme="dark"] {
@@ -46,6 +50,10 @@
   --status-progress-text: #ffc266;
   --status-resolved-bg: rgba(61, 220, 132, 0.18);
   --status-resolved-text: #6be3a4;
+  --listing-sale-bg: rgba(94, 138, 255, 0.18);
+  --listing-sale-text: #9db8ff;
+  --listing-rent-bg: rgba(45, 212, 175, 0.18);
+  --listing-rent-text: #6be0c8;
 }
 
 * {

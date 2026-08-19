@@ -52,3 +52,26 @@
   color: var(--color-text-subtle);
   padding: 24px;
 }
+
+.issue-list__status-select {
+  flex-shrink: 0;
+}
+
+.issue-list__status-select-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.issue-list__status-select select {
+  font-family: inherit;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}

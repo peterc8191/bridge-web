@@ -2,16 +2,12 @@ import { forwardRef, useImperativeHandle, useState } from "react";
 import { motion, useAnimation, type PanInfo } from "framer-motion";
 import type { Property } from "../types/property";
 import type { SwipeDirection } from "../hooks/usePropertyDeck";
+import { formatPrice } from "../utils/formatPrice";
+import { ListingTypeBadge } from "./ListingTypeBadge";
 import "./PropertyCard.css";
 
 const SWIPE_THRESHOLD = 120;
 const EXIT_X = 500;
-
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-  maximumFractionDigits: 0,
-});
 
 export interface PropertyCardHandle {
   swipe: (direction: SwipeDirection) => void;
@@ -125,7 +121,12 @@ export const PropertyCard = forwardRef<PropertyCardHandle, PropertyCardProps>(
           <div className="property-card__info">
             <h2>{property.address}</h2>
             <p className="property-card__city">{property.city}</p>
-            <p className="property-card__price">{currency.format(property.price)}</p>
+            <div className="property-card__price-row">
+              <span className="property-card__price">
+                {formatPrice(property.price, property.listingType)}
+              </span>
+              <ListingTypeBadge listingType={property.listingType} />
+            </div>
             <p className="property-card__specs">
               {property.beds} bed · {property.baths} bath · {property.sqft.toLocaleString()} sqft
             </p>

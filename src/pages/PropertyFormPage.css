@@ -1,0 +1,11 @@
+.property-form-page {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.property-form-page h1 {
+  margin: 0 0 20px;
+  font-size: 1.4rem;
+  color: var(--color-text);
+}

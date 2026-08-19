@@ -26,6 +26,21 @@ function SwipeHarness({
   );
 }
 
+describe("PropertyCard listing type", () => {
+  it("shows the formatted price and a listing-type badge", () => {
+    render(<PropertyCard property={property} active onSwiped={vi.fn()} />);
+    expect(screen.getByText("$549,000")).toBeInTheDocument();
+    expect(screen.getByText("For Sale")).toBeInTheDocument();
+  });
+
+  it("formats a rental's price per month and shows the For Rent badge", () => {
+    const rental = properties.find((p) => p.listingType === "rent")!;
+    render(<PropertyCard property={rental} active onSwiped={vi.fn()} />);
+    expect(screen.getByText(`$${rental.price.toLocaleString()}/mo`)).toBeInTheDocument();
+    expect(screen.getByText("For Rent")).toBeInTheDocument();
+  });
+});
+
 describe("PropertyCard photo navigation", () => {
   it("starts on the first image", () => {
     render(<PropertyCard property={property} active onSwiped={vi.fn()} />);

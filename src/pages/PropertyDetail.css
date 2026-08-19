@@ -75,8 +75,14 @@
   color: var(--color-text-subtle);
 }
 
-.property-detail__price {
+.property-detail__price-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   margin: 0 0 6px;
+}
+
+.property-detail__price {
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--color-text);

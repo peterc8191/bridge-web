@@ -26,6 +26,12 @@ describe("Saved", () => {
     expect(screen.getByText(properties[1].address)).toBeInTheDocument();
   });
 
+  it("shows the formatted price and listing-type badge for each item", () => {
+    renderSaved({ saved: properties.slice(0, 1), onRemove: vi.fn() });
+    expect(screen.getByText("$549,000")).toBeInTheDocument();
+    expect(screen.getByText("For Sale")).toBeInTheDocument();
+  });
+
   it("links each item to its property detail page", () => {
     renderSaved({ saved: properties.slice(0, 1), onRemove: vi.fn() });
     expect(screen.getByRole("link", { name: new RegExp(properties[0].address) })).toHaveAttribute(

@@ -1,0 +1,150 @@
+.issue-tenders {
+  margin-top: 10px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+
+.issue-tenders__toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: space-between;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.issue-tenders__chevron {
+  font-size: 0.65rem;
+  color: var(--color-text-subtle);
+}
+
+.issue-tenders__panel {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.issue-tenders__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-subtle);
+}
+
+.issue-tenders__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue-tenders__item {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.issue-tenders__item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.issue-tenders__amount {
+  font-weight: 700;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.issue-tenders__trader {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-subtle);
+}
+
+.issue-tenders__meta {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+.issue-tenders__message {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.issue-tenders__accept-btn {
+  margin-top: 8px;
+  border: 1px solid var(--status-resolved-text);
+  background: none;
+  color: var(--status-resolved-text);
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.issue-tenders__accept-btn:hover {
+  background: var(--status-resolved-bg);
+}
+
+.issue-tenders__form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.issue-tenders__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.issue-tenders__field input,
+.issue-tenders__field textarea {
+  font-family: inherit;
+  font-size: 0.85rem;
+  padding: 6px 8px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  resize: vertical;
+}
+
+.issue-tenders__error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--status-open-text);
+}
+
+.issue-tenders__submit {
+  align-self: flex-start;
+  border: none;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.issue-tenders__own-note {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-subtle);
+}

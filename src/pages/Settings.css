@@ -74,3 +74,25 @@
 .settings-danger-btn:hover {
   background: var(--status-open-bg);
 }
+
+.settings-account-info {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.settings-btn {
+  display: inline-block;
+  text-decoration: none;
+  border: 1px solid var(--color-border-strong);
+  background: none;
+  color: var(--color-text);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.settings-btn:hover {
+  background: var(--color-bg);
+}

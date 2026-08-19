@@ -1,12 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { Viewings } from "./Viewings";
 import { properties } from "../data/properties";
 import type { ViewingRequest } from "../types/viewing";
+import type { AuthUser } from "../types/auth";
 
 const propertyA = properties[0];
 const propertyB = properties[1];
+
+const landlord: AuthUser = { id: "u1", email: "landlorda@abc.com", role: "landlord" };
+const genericUser: AuthUser = { id: "u2", email: "usera@abc.com", role: "user" };
 
 function viewing(overrides: Partial<ViewingRequest> & Pick<ViewingRequest, "id">): ViewingRequest {
   return {
@@ -20,10 +25,19 @@ function viewing(overrides: Partial<ViewingRequest> & Pick<ViewingRequest, "id">
   };
 }
 
-function renderViewings(viewings: ViewingRequest[]) {
+function renderViewings(
+  viewings: ViewingRequest[],
+  options: { currentUser?: AuthUser | null; onConfirmViewing?: (id: string) => void } = {},
+) {
+  const { currentUser = null, onConfirmViewing = vi.fn() } = options;
   return render(
     <MemoryRouter>
-      <Viewings viewings={viewings} />
+      <Viewings
+        properties={properties}
+        viewings={viewings}
+        currentUser={currentUser}
+        onConfirmViewing={onConfirmViewing}
+      />
     </MemoryRouter>,
   );
 }
@@ -95,5 +109,36 @@ describe("Viewings page", () => {
     const items = within(screen.getByTestId("past-viewings")).getAllByRole("listitem");
     expect(items[0]).toHaveTextContent("2010");
     expect(items[1]).toHaveTextContent("2000");
+  });
+
+  describe("landlord confirm control", () => {
+    it("does not show a Confirm button for a non-landlord", () => {
+      renderViewings([viewing({ id: "pending", date: "2099-06-01", confirmed: false })], {
+        currentUser: genericUser,
+      });
+      expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+    });
+
+    it("does not show a Confirm button when logged out", () => {
+      renderViewings([viewing({ id: "pending", date: "2099-06-01", confirmed: false })]);
+      expect(screen.queryByRole("button", { name: /confirm/i })).not.toBeInTheDocument();
+    });
+
+    it("shows a Confirm button for a landlord only on pending viewings", () => {
+      const pending = viewing({ id: "pending", date: "2099-06-01", confirmed: false });
+      const confirmed = viewing({ id: "confirmed", date: "2099-06-02", confirmed: true });
+      renderViewings([pending, confirmed], { currentUser: landlord });
+
+      expect(screen.getAllByRole("button", { name: /confirm viewing/i })).toHaveLength(1);
+    });
+
+    it("calls onConfirmViewing with the viewing id when a landlord clicks Confirm", async () => {
+      const onConfirmViewing = vi.fn();
+      const pending = viewing({ id: "pending", date: "2099-06-01", confirmed: false });
+      renderViewings([pending], { currentUser: landlord, onConfirmViewing });
+
+      await userEvent.click(screen.getByRole("button", { name: /confirm viewing/i }));
+      expect(onConfirmViewing).toHaveBeenCalledWith("pending");
+    });
   });
 });

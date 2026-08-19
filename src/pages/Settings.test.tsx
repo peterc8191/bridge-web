@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { Settings } from "./Settings";
 
 function renderSettings(overrides: Partial<Parameters<typeof Settings>[0]> = {}) {
   const props = {
+    currentUser: null,
+    onLogout: vi.fn(),
     theme: "system" as const,
     onThemeChange: vi.fn(),
     resolvedTheme: "light" as const,
@@ -14,13 +17,42 @@ function renderSettings(overrides: Partial<Parameters<typeof Settings>[0]> = {})
     onClearIssues: vi.fn(),
     ...overrides,
   };
-  render(<Settings {...props} />);
+  render(
+    <MemoryRouter>
+      <Settings {...props} />
+    </MemoryRouter>,
+  );
   return props;
 }
 
 describe("Settings page", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("Account section", () => {
+    it("shows a signed-out prompt with links to log in or register when logged out", () => {
+      renderSettings({ currentUser: null });
+      expect(screen.getByText(/you're not signed in/i)).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: /^log in$/i })).toHaveAttribute("href", "/login");
+      expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute(
+        "href",
+        "/register",
+      );
+    });
+
+    it("shows the signed-in email and role when logged in", () => {
+      renderSettings({ currentUser: { id: "u1", email: "landlorda@abc.com", role: "landlord" } });
+      expect(screen.getByText("landlorda@abc.com")).toBeInTheDocument();
+      expect(screen.getByText("Landlord")).toBeInTheDocument();
+    });
+
+    it("calls onLogout when Log out is clicked", async () => {
+      const onLogout = vi.fn();
+      renderSettings({ currentUser: { id: "u1", email: "user@example.com", role: "user" }, onLogout });
+      await userEvent.click(screen.getByRole("button", { name: /log out/i }));
+      expect(onLogout).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("shows the current resolved theme when set to 'system'", () => {

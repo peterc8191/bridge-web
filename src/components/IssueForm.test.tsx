@@ -9,6 +9,7 @@ const property: Property = {
   address: "142 Maple Street",
   city: "Portland, OR",
   price: 549000,
+  listingType: "sale",
   beds: 3,
   baths: 2,
   sqft: 1650,
