@@ -2,18 +2,40 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="./favicon.png" />
-    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="/bridge-web/favicon.png" />
+    <link rel="apple-touch-icon" href="/bridge-web/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ff5864" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Bridge" />
+    <meta name="description" content="Swipe through property listings, save favorites, report issues, and arrange viewings." />
     <title>Bridge</title>
-    <script type="module" crossorigin src="./assets/index-nOJBRD8h.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D1u1mxgs.css">
-  <link rel="manifest" href="./manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="./registerSW.js"></script></head>
+    <script>
+      // Runs before the app. Restores routes that reached us via a redirect:
+      (function (l) {
+        // 1. GitHub Pages 404.html sends /base/saved as /base/?/saved
+        //    (see githubPagesSpaFallback in vite.config.ts).
+        if (l.search[1] === "/") {
+          var decoded = l.search
+            .slice(1)
+            .split("&")
+            .map(function (s) {
+              return s.replace(/~and~/g, "&");
+            })
+            .join("?");
+          window.history.replaceState(null, "", l.pathname.slice(0, -1) + decoded + l.hash);
+        }
+        // 2. Links from the old HashRouter build (/base/#/saved) still work.
+        else if (l.hash.indexOf("#/") === 0) {
+          window.history.replaceState(null, "", l.pathname.replace(/\/?$/, "/") + l.hash.slice(2));
+        }
+      })(window.location);
+    </script>
+    <script type="module" crossorigin src="/bridge-web/assets/index-CLLbiPUx.js"></script>
+    <link rel="stylesheet" crossorigin href="/bridge-web/assets/index-BHKAyf-B.css">
+  <link rel="manifest" href="/bridge-web/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/bridge-web/registerSW.js"></script></head>
   <body>
     <div id="root"></div>
   </body>
