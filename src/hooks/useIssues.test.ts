@@ -1,136 +1,73 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useIssues } from "./useIssues";
 import { seedIssues } from "../data/issues";
+import { otherUser, tenant } from "../test/fixtures";
+
+const input = { propertyId: "p3", title: "Broken heater", description: "No heat since Monday." };
 
 describe("useIssues", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
   it("starts with the seed issues", () => {
     const { result } = renderHook(() => useIssues());
-    expect(result.current.issues).toHaveLength(seedIssues.length);
-    expect(result.current.issues.map((i) => i.id)).toEqual(seedIssues.map((i) => i.id));
+    expect(result.current.issues).toEqual(seedIssues);
   });
 
-  it("addIssue appends a new issue with status 'open'", () => {
+  it("addIssue appends an open issue stamped with the reporter", () => {
     const { result } = renderHook(() => useIssues());
+    act(() => result.current.addIssue(tenant, input));
 
-    act(() => {
-      result.current.addIssue({
-        propertyId: "p2",
-        title: "Broken thermostat",
-        description: "The thermostat doesn't respond to changes.",
-      });
+    const added = result.current.issues.at(-1)!;
+    expect(added).toMatchObject({
+      ...input,
+      status: "open",
+      reporterId: tenant.id,
+      reporterEmail: tenant.email,
     });
-
-    expect(result.current.issues).toHaveLength(seedIssues.length + 1);
-    const added = result.current.issues.find((i) => i.title === "Broken thermostat");
-    expect(added).toBeDefined();
-    expect(added?.status).toBe("open");
-    expect(added?.propertyId).toBe("p2");
-    expect(added?.createdAt).toBeTruthy();
+    expect(added.id).toMatch(/^issue-[0-9a-f-]{36}$/);
   });
 
-  it("persists added issues across hook instances via localStorage", () => {
-    const { result, unmount } = renderHook(() => useIssues());
+  it("gives every issue a unique id, even across reloads", () => {
+    const first = renderHook(() => useIssues());
+    act(() => first.result.current.addIssue(tenant, input));
+    first.unmount();
 
-    act(() => {
-      result.current.addIssue({
-        propertyId: "p3",
-        title: "Noisy radiator",
-        description: "Loud banging noise when the heat turns on.",
-      });
-    });
-    unmount();
+    // A fresh hook instance stands in for a page reload.
+    const second = renderHook(() => useIssues());
+    act(() => second.result.current.addIssue(tenant, input));
 
-    const { result: second } = renderHook(() => useIssues());
-    expect(second.current.issues.some((i) => i.title === "Noisy radiator")).toBe(true);
-    expect(second.current.issues).toHaveLength(seedIssues.length + 1);
+    const ids = second.result.current.issues.map((issue) => issue.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("clearAddedIssues removes user-reported issues but keeps the seed issues", () => {
+  it("persists added issues across hook instances", () => {
+    const first = renderHook(() => useIssues());
+    act(() => first.result.current.addIssue(tenant, input));
+    first.unmount();
+
+    const second = renderHook(() => useIssues());
+    expect(second.result.current.issues).toHaveLength(seedIssues.length + 1);
+  });
+
+  it("updateIssueStatus changes one issue's status and persists it", () => {
+    const first = renderHook(() => useIssues());
+    act(() => first.result.current.updateIssueStatus("issue-seed-1", "resolved"));
+    expect(first.result.current.issues.find((i) => i.id === "issue-seed-1")?.status).toBe("resolved");
+    first.unmount();
+
+    const second = renderHook(() => useIssues());
+    expect(second.result.current.issues.find((i) => i.id === "issue-seed-1")?.status).toBe("resolved");
+  });
+
+  it("deleteIssuesByReporter removes only that reporter's issues", () => {
     const { result } = renderHook(() => useIssues());
-
     act(() => {
-      result.current.addIssue({
-        propertyId: "p2",
-        title: "Broken thermostat",
-        description: "The thermostat doesn't respond to changes.",
-      });
-    });
-    expect(result.current.issues).toHaveLength(seedIssues.length + 1);
-
-    act(() => {
-      result.current.clearAddedIssues();
+      result.current.addIssue(tenant, input);
+      result.current.addIssue(otherUser, input);
     });
 
-    expect(result.current.issues).toHaveLength(seedIssues.length);
-    expect(result.current.issues.map((i) => i.id)).toEqual(seedIssues.map((i) => i.id));
-  });
+    act(() => result.current.deleteIssuesByReporter(tenant.id));
 
-  it("clearAddedIssues persists across hook instances", () => {
-    const { result, unmount } = renderHook(() => useIssues());
-
-    act(() => {
-      result.current.addIssue({
-        propertyId: "p2",
-        title: "Broken thermostat",
-        description: "The thermostat doesn't respond to changes.",
-      });
-    });
-    act(() => {
-      result.current.clearAddedIssues();
-    });
-    unmount();
-
-    const { result: second } = renderHook(() => useIssues());
-    expect(second.current.issues).toHaveLength(seedIssues.length);
-  });
-
-  describe("updateIssueStatus", () => {
-    it("changes the status of a seed issue", () => {
-      const { result } = renderHook(() => useIssues());
-      const target = seedIssues[0];
-
-      act(() => {
-        result.current.updateIssueStatus(target.id, "resolved");
-      });
-
-      expect(result.current.issues.find((i) => i.id === target.id)?.status).toBe("resolved");
-    });
-
-    it("changes the status of a user-added issue", () => {
-      const { result } = renderHook(() => useIssues());
-
-      act(() => {
-        result.current.addIssue({
-          propertyId: "p2",
-          title: "Broken thermostat",
-          description: "The thermostat doesn't respond to changes.",
-        });
-      });
-      const added = result.current.issues.find((i) => i.title === "Broken thermostat")!;
-
-      act(() => {
-        result.current.updateIssueStatus(added.id, "in-progress");
-      });
-
-      expect(result.current.issues.find((i) => i.id === added.id)?.status).toBe("in-progress");
-    });
-
-    it("persists a status change across hook instances", () => {
-      const { result, unmount } = renderHook(() => useIssues());
-      const target = seedIssues[0];
-
-      act(() => {
-        result.current.updateIssueStatus(target.id, "resolved");
-      });
-      unmount();
-
-      const { result: second } = renderHook(() => useIssues());
-      expect(second.current.issues.find((i) => i.id === target.id)?.status).toBe("resolved");
-    });
+    expect(result.current.issues.some((issue) => issue.reporterId === tenant.id)).toBe(false);
+    expect(result.current.issues.some((issue) => issue.reporterId === otherUser.id)).toBe(true);
   });
 });

@@ -85,31 +85,30 @@
   font-size: 0.8rem;
 }
 
-.viewings-page__status {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
+.viewings-page__actions {
+  display: flex;
+  gap: 8px;
+  margin: 0 14px 12px;
 }
 
-.viewings-page__status--confirmed {
-  background: var(--status-resolved-bg);
-  color: var(--status-resolved-text);
+.viewings-page__requester {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
 }
 
-.viewings-page__status--pending {
-  background: var(--status-progress-bg);
-  color: var(--status-progress-text);
+.viewings-page__decline-btn {
+  flex: 1;
+  border: 1px solid var(--color-border-strong);
+  background: none;
+  color: var(--color-text-muted);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  cursor: pointer;
 }
 
 .viewings-page__confirm-btn {
-  display: block;
-  width: calc(100% - 28px);
-  margin: 0 14px 12px;
+  flex: 1;
   border: 1px solid var(--status-resolved-text);
   background: none;
   color: var(--status-resolved-text);

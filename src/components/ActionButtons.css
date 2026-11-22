@@ -27,6 +27,22 @@
   border: 2px solid var(--color-accent);
 }
 
+.action-buttons__btn--undo {
+  align-self: center;
+  width: 44px;
+  height: 44px;
+  font-size: 1.2rem;
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  border: 2px solid var(--color-border-strong);
+}
+
+.action-buttons__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .action-buttons__btn--like {
   background: var(--color-surface);
   color: var(--color-like);

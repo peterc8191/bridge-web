@@ -1,7 +1,7 @@
 import type { StoredUser } from "../types/auth";
 
 // Seed test accounts so login can be exercised without registering first.
-// All three share the password "password123" (see README). Salt/hash were
+// All four share the password "password123" (see README). Salt/hash were
 // precomputed with src/utils/passwordHash.ts's exact algorithm so they
 // validate correctly through the real login() check.
 export const seedUsers: StoredUser[] = [
@@ -27,6 +27,14 @@ export const seedUsers: StoredUser[] = [
     role: "tradesperson",
     salt: "a92be49f04f5a08aa3938d7682f5430e",
     passwordHash: "01692bb21dca2dd19ce9d22c16efd44c01ce7e25e0963583b09dab88eea2eb49",
+    createdAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "user-seed-4",
+    email: "landlordb@abc.com",
+    role: "landlord",
+    salt: "40cf6c9b23b1050fa4f2b20610db2382",
+    passwordHash: "a1b23e24e05985ba2ba840b00ba45a14a917340f0274c1840d23a61e1d2faa5f",
     createdAt: "2026-01-01T00:00:00.000Z",
   },
 ];

@@ -3,6 +3,7 @@ import { motion, useAnimation, type PanInfo } from "framer-motion";
 import type { Property } from "../types/property";
 import type { SwipeDirection } from "../hooks/usePropertyDeck";
 import { formatPrice } from "../utils/formatPrice";
+import { photoBackground } from "../utils/photo";
 import { ListingTypeBadge } from "./ListingTypeBadge";
 import "./PropertyCard.css";
 
@@ -83,13 +84,13 @@ export const PropertyCard = forwardRef<PropertyCardHandle, PropertyCardProps>(
         <div
           className="property-card__image"
           data-testid="property-card-image"
-          style={{ backgroundImage: `url(${property.images[imageIndex]})` }}
+          style={{ backgroundImage: photoBackground(property.images[imageIndex]) }}
         >
           {property.images.length > 1 && (
             <div className="property-card__progress">
               {property.images.map((image, index) => (
                 <span
-                  key={image}
+                  key={`${index}-${image.slice(0, 64)}`}
                   className={
                     index === imageIndex
                       ? "property-card__progress-segment property-card__progress-segment--active"

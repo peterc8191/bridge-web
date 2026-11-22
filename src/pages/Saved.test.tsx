@@ -1,57 +1,50 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
 import { Saved } from "./Saved";
-import { properties } from "../data/properties";
+import { renderWithAppData } from "../test/appData";
+import { makeProperty, tenant } from "../test/fixtures";
 
-function renderSaved(props: Parameters<typeof Saved>[0]) {
-  return render(
-    <MemoryRouter>
-      <Saved {...props} />
-    </MemoryRouter>,
-  );
-}
+const sale = makeProperty({ id: "p1" });
+const rental = makeProperty({ id: "p3", address: "27 Elm Court", price: 1650, listingType: "rent" });
 
 describe("Saved", () => {
   it("shows the empty state when nothing is saved", () => {
-    renderSaved({ saved: [], onRemove: vi.fn() });
+    renderWithAppData(<Saved />);
     expect(screen.getByText(/no saved properties yet/i)).toBeInTheDocument();
   });
 
-  it("lists saved properties", () => {
-    renderSaved({ saved: properties.slice(0, 2), onRemove: vi.fn() });
-    expect(screen.getByTestId("saved-list")).toBeInTheDocument();
-    expect(screen.getByText(properties[0].address)).toBeInTheDocument();
-    expect(screen.getByText(properties[1].address)).toBeInTheDocument();
-  });
-
-  it("shows the formatted price and listing-type badge for each item", () => {
-    renderSaved({ saved: properties.slice(0, 1), onRemove: vi.fn() });
-    expect(screen.getByText("$549,000")).toBeInTheDocument();
-    expect(screen.getByText("For Sale")).toBeInTheDocument();
+  it("lists saved properties with formatted price and listing-type badge", () => {
+    renderWithAppData(<Saved />, { data: { saved: [sale, rental] } });
+    const items = within(screen.getByTestId("saved-list")).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(within(items[0]).getByText("$549,000")).toBeInTheDocument();
+    expect(within(items[1]).getByText("$1,650/mo")).toBeInTheDocument();
+    expect(within(items[1]).getByText("For Rent")).toBeInTheDocument();
   });
 
   it("links each item to its property detail page", () => {
-    renderSaved({ saved: properties.slice(0, 1), onRemove: vi.fn() });
-    expect(screen.getByRole("link", { name: new RegExp(properties[0].address) })).toHaveAttribute(
-      "href",
-      `/property/${properties[0].id}`,
-    );
+    renderWithAppData(<Saved />, { data: { saved: [sale] } });
+    expect(screen.getByRole("link", { name: new RegExp(sale.address) })).toHaveAttribute("href", "/property/p1");
   });
 
-  it("calls onRemove with the property id when Remove is clicked", async () => {
-    const onRemove = vi.fn();
-    renderSaved({ saved: properties.slice(0, 1), onRemove });
+  it("removes with a separate control from the link", async () => {
+    const { data } = renderWithAppData(<Saved />, { data: { saved: [sale] } });
+    expect(data.removeSaved).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole("button", { name: /remove/i }));
-    expect(onRemove).toHaveBeenCalledWith(properties[0].id);
+    const remove = screen.getByRole("button", { name: /remove 142 maple street/i });
+    expect(remove.closest("a")).toBeNull();
+    await userEvent.click(remove);
+    expect(data.removeSaved).toHaveBeenCalledWith("p1");
   });
 
-  it("does not navigate or call onRemove just from being rendered - Remove stays a separate control from the link", () => {
-    renderSaved({ saved: properties.slice(0, 1), onRemove: vi.fn() });
-    const link = screen.getByRole("link", { name: new RegExp(properties[0].address) });
-    const removeButton = screen.getByRole("button", { name: /remove/i });
-    expect(link).not.toContainElement(removeButton);
+  it("tells guests their list is per-browser and invites them to log in", () => {
+    renderWithAppData(<Saved />, { data: { saved: [sale] } });
+    expect(screen.getByTestId("guest-note")).toHaveTextContent(/guest/i);
+  });
+
+  it("does not show the guest note when signed in", () => {
+    renderWithAppData(<Saved />, { data: { saved: [sale], currentUser: tenant } });
+    expect(screen.queryByTestId("guest-note")).not.toBeInTheDocument();
   });
 });

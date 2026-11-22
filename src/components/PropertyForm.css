@@ -50,3 +50,61 @@
   font-size: 0.9rem;
   cursor: pointer;
 }
+
+.property-form__photos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+
+.property-form__photos legend {
+  padding: 0 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.property-form__uploads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.property-form__upload {
+  position: relative;
+}
+
+.property-form__upload-thumb {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+}
+
+.property-form__upload-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.property-form__hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-subtle);
+}

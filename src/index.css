@@ -9,9 +9,12 @@
   --color-dashed-border: #d0d0d8;
   --color-text: #111111;
   --color-text-muted: #555555;
-  --color-text-subtle: #888888;
-  --color-text-faint: #999999;
-  --color-accent: #ff5864;
+  /* Text tokens meet WCAG AA (4.5:1) on both --color-bg and --color-surface. */
+  --color-text-subtle: #6b6b6b;
+  --color-text-faint: #707070;
+  /* Deepened from the logo coral (#ff5864, still the PWA theme colour) so it
+     passes AA as text and behind white button text. */
+  --color-accent: #d6283a;
   --color-accent-contrast: #ffffff;
   --color-like: #2ecc71;
   --color-shadow: rgba(0, 0, 0, 0.15);
@@ -25,7 +28,7 @@
   --listing-sale-bg: #e3ecff;
   --listing-sale-text: #1e4fd6;
   --listing-rent-bg: #e0f7f2;
-  --listing-rent-text: #0f8a72;
+  --listing-rent-text: #0b6e5b;
 }
 
 :root[data-theme="dark"] {
@@ -38,9 +41,11 @@
   --color-dashed-border: #3a3e4a;
   --color-text: #f2f2f5;
   --color-text-muted: #b7bac3;
-  --color-text-subtle: #8b8f9c;
-  --color-text-faint: #75798a;
+  --color-text-subtle: #9da1ad;
+  --color-text-faint: #8b8f9c;
   --color-accent: #ff6b76;
+  /* Dark text on coral buttons: white on #ff6b76 is only 2.75:1. */
+  --color-accent-contrast: #15161b;
   --color-like: #3ddc84;
   --color-shadow: rgba(0, 0, 0, 0.4);
   --color-shadow-strong: rgba(0, 0, 0, 0.55);
@@ -74,4 +79,16 @@ body {
 
 button {
   font-family: inherit;
+}
+
+.not-found {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+/* Links inside running text must not rely on colour alone (WCAG 1.4.1). */
+p a,
+small a {
+  text-decoration: underline;
 }

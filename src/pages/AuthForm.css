@@ -72,7 +72,7 @@
 
 .auth-form__switch a {
   color: var(--color-accent);
-  text-decoration: none;
+  text-decoration: underline;
 }
 
 .auth-form__switch a:hover {

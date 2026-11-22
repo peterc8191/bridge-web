@@ -1,17 +1,22 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import "./index.css";
+import App from "./App.tsx";
+import { AppDataProvider } from "./context/AppDataProvider";
+import { migrateStorage } from "./lib/storage";
 
-// HashRouter (not BrowserRouter): GitHub Pages serves static files with no
-// server-side rewrite, so a direct link or refresh on a non-root route would
-// 404 under BrowserRouter. Hash routes never reach the server, so this works
-// regardless of host.
-createRoot(document.getElementById('root')!).render(
+migrateStorage();
+
+// BrowserRouter under the deploy base path (e.g. /bridge-web/ on GitHub Pages).
+// Deep links survive a hard refresh there via the 404.html redirect emitted
+// by vite.config.ts and the decoder script in index.html.
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+      <AppDataProvider>
+        <App />
+      </AppDataProvider>
+    </BrowserRouter>
   </StrictMode>,
-)
+);

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import type { ResolvedTheme, Theme } from "../types/settings";
-import type { AuthUser, UserRole } from "../types/auth";
+import type { Theme } from "../types/settings";
+import type { UserRole } from "../types/auth";
+import { useAppData } from "../context/appDataContext";
 import "./Settings.css";
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
@@ -15,29 +16,19 @@ const ROLE_LABELS: Record<UserRole, string> = {
   tradesperson: "Tradesperson",
 };
 
-interface SettingsProps {
-  currentUser: AuthUser | null;
-  onLogout: () => void;
-  theme: Theme;
-  onThemeChange: (theme: Theme) => void;
-  resolvedTheme: ResolvedTheme;
-  reduceMotion: boolean;
-  onReduceMotionChange: (reduceMotion: boolean) => void;
-  onResetProperties: () => void;
-  onClearIssues: () => void;
-}
+export function Settings() {
+  const {
+    currentUser,
+    logout: onLogout,
+    theme,
+    setTheme: onThemeChange,
+    resolvedTheme,
+    reduceMotion,
+    setReduceMotion: onReduceMotionChange,
+    resetDeck: onResetProperties,
+    clearMyIssues: onClearIssues,
+  } = useAppData();
 
-export function Settings({
-  currentUser,
-  onLogout,
-  theme,
-  onThemeChange,
-  resolvedTheme,
-  reduceMotion,
-  onReduceMotionChange,
-  onResetProperties,
-  onClearIssues,
-}: SettingsProps) {
   const handleResetProperties = () => {
     if (window.confirm("Reset your saved and passed properties? This can't be undone.")) {
       onResetProperties();
@@ -120,13 +111,16 @@ export function Settings({
           <button type="button" className="settings-danger-btn" onClick={handleResetProperties}>
             Reset saved &amp; passed properties
           </button>
-          <button type="button" className="settings-danger-btn" onClick={handleClearIssues}>
-            Clear reported issues
-          </button>
+          {currentUser && (
+            <button type="button" className="settings-danger-btn" onClick={handleClearIssues}>
+              Clear issues I've reported
+            </button>
+          )}
         </div>
         <p className="settings-hint">
-          Everything here lives only in this browser (no account, no server) - these actions can't be
-          undone.
+          {currentUser
+            ? `Applies to ${currentUser.email} only. Data is stored in this browser - these actions can't be undone.`
+            : "Applies to the guest saved list in this browser - this can't be undone."}
         </p>
       </section>
     </main>

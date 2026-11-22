@@ -1,65 +1,50 @@
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { Login } from "./Login";
-import type { AuthResult, AuthUser } from "../types/auth";
+import { renderWithAppData } from "../test/appData";
+import { tenant } from "../test/fixtures";
 
-function renderLogin(currentUser: AuthUser | null, onLogin: (email: string, password: string) => Promise<AuthResult>) {
-  return render(
-    <MemoryRouter initialEntries={["/login"]}>
-      <Routes>
-        <Route path="/login" element={<Login currentUser={currentUser} onLogin={onLogin} />} />
-        <Route path="/" element={<div>Home page</div>} />
-        <Route path="/register" element={<div>Register page</div>} />
-      </Routes>
-    </MemoryRouter>,
-  );
+async function submit(email = "usera@abc.com", password = "password123") {
+  await userEvent.type(screen.getByLabelText(/email/i), email);
+  await userEvent.type(screen.getByLabelText(/password/i), password);
+  await userEvent.click(screen.getByRole("button", { name: /log in/i }));
 }
 
 describe("Login", () => {
-  it("redirects to home if already logged in", () => {
-    renderLogin({ id: "u1", email: "user@example.com", role: "user" }, vi.fn());
-    expect(screen.getByText("Home page")).toBeInTheDocument();
-    expect(screen.queryByTestId("login-form")).not.toBeInTheDocument();
+  it("redirects home if already logged in", () => {
+    renderWithAppData(<Login />, { path: "/login", data: { currentUser: tenant } });
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
   });
 
   it("submits the entered email and password", async () => {
-    const onLogin = vi.fn().mockResolvedValue({ ok: true });
-    renderLogin(null, onLogin);
-
-    await userEvent.type(screen.getByLabelText(/email/i), "user@example.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "password123");
-    await userEvent.click(screen.getByRole("button", { name: /^log in$/i }));
-
-    expect(onLogin).toHaveBeenCalledWith("user@example.com", "password123");
+    const { data } = renderWithAppData(<Login />, { path: "/login" });
+    await submit();
+    expect(data.login).toHaveBeenCalledWith("usera@abc.com", "password123");
   });
 
   it("navigates home on success", async () => {
-    const onLogin = vi.fn().mockResolvedValue({ ok: true });
-    renderLogin(null, onLogin);
+    renderWithAppData(<Login />, { path: "/login" });
+    await submit();
+    expect(await screen.findByTestId("location")).toHaveTextContent(/^\/$/);
+  });
 
-    await userEvent.type(screen.getByLabelText(/email/i), "user@example.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "password123");
-    await userEvent.click(screen.getByRole("button", { name: /^log in$/i }));
-
-    expect(await screen.findByText("Home page")).toBeInTheDocument();
+  it("returns to the page that required sign-in", async () => {
+    renderWithAppData(<Login />, { path: "/login", state: { from: "/issues" } });
+    await submit();
+    expect(await screen.findByTestId("location")).toHaveTextContent("/issues");
   });
 
   it("shows the error and stays on the page when login fails", async () => {
-    const onLogin = vi.fn().mockResolvedValue({ ok: false, error: "Invalid email or password." });
-    renderLogin(null, onLogin);
-
-    await userEvent.type(screen.getByLabelText(/email/i), "user@example.com");
-    await userEvent.type(screen.getByLabelText(/password/i), "wrong-password");
-    await userEvent.click(screen.getByRole("button", { name: /^log in$/i }));
-
+    const login = vi.fn(async () => ({ ok: false as const, error: "Invalid email or password." }));
+    renderWithAppData(<Login />, { path: "/login", data: { login } });
+    await submit("x@y.com", "wrong");
     expect(await screen.findByRole("alert")).toHaveTextContent("Invalid email or password.");
-    expect(screen.getByTestId("login-form")).toBeInTheDocument();
+    expect(screen.queryByTestId("location")).not.toBeInTheDocument();
   });
 
   it("links to the register page", () => {
-    renderLogin(null, vi.fn());
+    renderWithAppData(<Login />, { path: "/login" });
     expect(screen.getByRole("link", { name: /create one/i })).toHaveAttribute("href", "/register");
   });
 });

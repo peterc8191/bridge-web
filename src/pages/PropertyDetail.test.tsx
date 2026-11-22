@@ -1,115 +1,93 @@
-import { describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PropertyDetail } from "./PropertyDetail";
-import { properties } from "../data/properties";
-import type { ViewingRequest } from "../types/viewing";
+import { renderWithAppData } from "../test/appData";
+import { futureDate, landlord, makeProperty, makeViewing, otherUser, tenant } from "../test/fixtures";
+import type { AppData } from "../context/appDataContext";
 
-const property = properties[0]; // has 4 images
+const property = makeProperty({ id: "p1" });
+const rental = makeProperty({ id: "p3", address: "27 Elm Court", price: 1650, listingType: "rent" });
 
-function renderDetail(path: string, viewings: ViewingRequest[] = [], onScheduleViewing = vi.fn()) {
-  return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route
-          path="/property/:id"
-          element={
-            <PropertyDetail
-              properties={properties}
-              viewings={viewings}
-              onScheduleViewing={onScheduleViewing}
-            />
-          }
-        />
-        <Route path="/saved" element={<div>Saved page</div>} />
-      </Routes>
-    </MemoryRouter>,
-  );
+function renderDetail(id: string, data: Partial<AppData> = {}) {
+  return renderWithAppData(<PropertyDetail />, {
+    path: "/property/:id",
+    route: `/property/${id}`,
+    data: { properties: [property, rental], ...data },
+  });
 }
+
+const heroStyle = () => screen.getByTestId("property-detail-hero").style.backgroundImage;
 
 describe("PropertyDetail", () => {
   it("shows a not-found state for an unknown id, with a link back to Saved", () => {
-    renderDetail("/property/does-not-exist");
+    renderDetail("nope");
     expect(screen.getByTestId("property-not-found")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /back to saved/i })).toHaveAttribute("href", "/saved");
   });
 
-  it("shows all of the property's details", () => {
-    renderDetail(`/property/${property.id}`);
+  it("shows the property's details, formatted price and badge", () => {
+    renderDetail("p1");
     expect(screen.getByRole("heading", { name: property.address })).toBeInTheDocument();
     expect(screen.getByText(property.city)).toBeInTheDocument();
-    expect(screen.getByText(property.description)).toBeInTheDocument();
-    expect(
-      screen.getByText(`${property.beds} bed · ${property.baths} bath · ${property.sqft.toLocaleString()} sqft`),
-    ).toBeInTheDocument();
-  });
-
-  it("shows the formatted price and listing-type badge", () => {
-    renderDetail(`/property/${property.id}`);
     expect(screen.getByText("$549,000")).toBeInTheDocument();
     expect(screen.getByText("For Sale")).toBeInTheDocument();
+    expect(screen.getByText(/3 bed · 2 bath · 1,650 sqft/)).toBeInTheDocument();
+    expect(screen.getByText(property.description)).toBeInTheDocument();
   });
 
   it("formats a rental's price per month with a For Rent badge", () => {
-    const rental = properties.find((p) => p.listingType === "rent")!;
-    renderDetail(`/property/${rental.id}`);
-    expect(screen.getByText(`$${rental.price.toLocaleString()}/mo`)).toBeInTheDocument();
+    renderDetail("p3");
+    expect(screen.getByText("$1,650/mo")).toBeInTheDocument();
     expect(screen.getByText("For Rent")).toBeInTheDocument();
   });
 
   it("starts on the first photo and switches on thumbnail click", async () => {
-    renderDetail(`/property/${property.id}`);
-    expect(screen.getByTestId("property-detail-hero")).toHaveStyle(
-      `background-image: url(${property.images[0]})`,
-    );
-
+    renderDetail("p1");
+    expect(heroStyle().startsWith(`url("${property.images[0]}")`)).toBe(true);
     await userEvent.click(screen.getByRole("button", { name: /show photo 2/i }));
-    expect(screen.getByTestId("property-detail-hero")).toHaveStyle(
-      `background-image: url(${property.images[1]})`,
-    );
+    expect(heroStyle().startsWith(`url("${property.images[1]}")`)).toBe(true);
   });
 
-  it("lists existing viewing requests for this property only", () => {
-    const viewings: ViewingRequest[] = [
-      {
-        id: "v1",
-        propertyId: property.id,
-        date: "2026-09-01",
-        time: "09:00",
-        note: "",
-        confirmed: false,
-        createdAt: "",
-      },
-      {
-        id: "v2",
-        propertyId: "some-other-property",
-        date: "2026-09-02",
-        time: "10:00",
-        note: "",
-        confirmed: false,
-        createdAt: "",
-      },
-    ];
-    renderDetail(`/property/${property.id}`, viewings);
-
-    const list = screen.getByTestId("viewing-list");
-    expect(list.querySelectorAll("li")).toHaveLength(1);
+  it("asks signed-out visitors to log in before arranging a viewing", () => {
+    renderDetail("p1");
+    expect(screen.getByTestId("viewing-login-hint")).toBeInTheDocument();
+    expect(screen.queryByTestId("viewing-form")).not.toBeInTheDocument();
   });
 
-  it("schedules a viewing and shows it was requested", async () => {
-    const onScheduleViewing = vi.fn();
-    renderDetail(`/property/${property.id}`, [], onScheduleViewing);
-
-    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2026-09-10" } });
-    fireEvent.change(screen.getByLabelText(/time/i), { target: { value: "14:00" } });
-    await userEvent.click(screen.getByRole("button", { name: /request viewing/i }));
-
-    expect(onScheduleViewing).toHaveBeenCalledWith({
-      propertyId: property.id,
-      date: "2026-09-10",
-      time: "14:00",
-      note: "",
+  it("lists only the signed-in user's own requests for this property", () => {
+    renderDetail("p1", {
+      currentUser: tenant,
+      viewings: [
+        makeViewing({ id: "mine", propertyId: "p1", note: "mine" }),
+        makeViewing({ id: "other-prop", propertyId: "p3", note: "other property" }),
+        makeViewing({ id: "other-user", propertyId: "p1", requesterId: otherUser.id, note: "someone else" }),
+      ],
     });
+    const list = screen.getByTestId("viewing-list");
+    expect(within(list).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(list).getByText("mine")).toBeInTheDocument();
+  });
+
+  it("schedules a viewing and lets the user cancel a request", async () => {
+    const { data } = renderDetail("p1", {
+      currentUser: tenant,
+      viewings: [makeViewing({ id: "v1", propertyId: "p1" })],
+    });
+    const date = futureDate(10);
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: date } });
+    fireEvent.change(screen.getByLabelText(/time/i), { target: { value: "11:00" } });
+    await userEvent.click(screen.getByRole("button", { name: /request viewing/i }));
+    expect(data.scheduleViewing).toHaveBeenCalledWith({ propertyId: "p1", date, time: "11:00", note: "" });
+    expect(screen.getByRole("status")).toHaveTextContent(/viewing requested/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /cancel request/i }));
+    expect(data.cancelViewing).toHaveBeenCalledWith("v1");
+  });
+
+  it("shows the owner an edit link instead of the viewing form", () => {
+    renderDetail("p1", { currentUser: landlord });
+    expect(screen.getByRole("link", { name: /edit listing/i })).toHaveAttribute("href", "/manage-listings/p1/edit");
+    expect(screen.queryByTestId("viewing-form")).not.toBeInTheDocument();
   });
 });

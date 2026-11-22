@@ -1,24 +1,14 @@
 import { useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
-import type { AuthUser } from "../types/auth";
-import type { TraderProfile } from "../types/traderProfile";
+import { useAppData } from "../context/appDataContext";
 import "./TraderProfilePage.css";
 
-interface TraderProfilePageProps {
-  currentUser: AuthUser | null;
-  profile: TraderProfile;
-  onUpdateProfile: (profile: TraderProfile) => void;
-}
-
-export function TraderProfilePage({ currentUser, profile, onUpdateProfile }: TraderProfilePageProps) {
+// Tradesperson-only (guarded in App.tsx).
+export function TraderProfilePage() {
+  const { traderProfile: profile, updateTraderProfile: onUpdateProfile } = useAppData();
   const [bio, setBio] = useState(profile.bio);
   const [servicesText, setServicesText] = useState(profile.services.join("\n"));
   const [areasText, setAreasText] = useState(profile.areas.join("\n"));
   const [saved, setSaved] = useState(false);
-
-  if (currentUser?.role !== "tradesperson") {
-    return <Navigate to="/" replace />;
-  }
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -40,7 +30,7 @@ export function TraderProfilePage({ currentUser, profile, onUpdateProfile }: Tra
     <main className="trader-profile-page">
       <h1>Your trader profile</h1>
       <p className="trader-profile-page__hint">
-        Shown to landlords alongside any quote you tender on a reported issue.
+        Shown to landlords alongside any quote you tender. You'll only see issues in the areas you list here.
       </p>
 
       <form className="trader-profile-form" onSubmit={handleSubmit} data-testid="trader-profile-form">
@@ -82,6 +72,10 @@ export function TraderProfilePage({ currentUser, profile, onUpdateProfile }: Tra
             placeholder="Portland, OR"
           />
         </label>
+
+        <p className="trader-profile-page__hint">
+          Use the same "City, ST" format as listings (e.g. Portland, OR).
+        </p>
 
         <button type="submit" className="trader-profile-form__submit">
           Save profile

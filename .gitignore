@@ -30,3 +30,7 @@ Thumbs.db
 .cache/
 .temp/
 *.tsbuildinfo
+
+# Playwright
+test-results/
+playwright-report/

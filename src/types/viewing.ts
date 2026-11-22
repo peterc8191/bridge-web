@@ -1,10 +1,14 @@
+export type ViewingStatus = "pending" | "confirmed" | "declined" | "cancelled";
+
 export interface ViewingRequest {
   id: string;
   propertyId: string;
+  requesterId: string;
+  requesterEmail: string;
   date: string;
   time: string;
   note: string;
-  confirmed: boolean;
+  status: ViewingStatus;
   createdAt: string;
 }
 

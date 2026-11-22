@@ -1,87 +1,43 @@
-import { useCallback, useMemo, useState } from "react";
-import { seedViewings } from "../data/viewings";
-import type { NewViewingInput, ViewingRequest } from "../types/viewing";
+import { useCallback, useState } from "react";
+import { createSeedViewings } from "../data/viewings";
+import { newId, storageKey } from "../lib/storage";
+import type { AuthUser } from "../types/auth";
+import type { NewViewingInput, ViewingRequest, ViewingStatus } from "../types/viewing";
+import { useStoredState } from "./useStoredState";
 
-const VIEWINGS_KEY = "bridge:viewing-requests";
-const CONFIRMED_KEY = "bridge:confirmed-viewing-ids";
+export const VIEWINGS_KEY = storageKey("viewings");
 
-let viewingSequence = 0;
-function generateViewingId(): string {
-  viewingSequence += 1;
-  return `viewing-${viewingSequence}`;
-}
-
-function readAddedViewings(): ViewingRequest[] {
-  try {
-    const raw = localStorage.getItem(VIEWINGS_KEY);
-    return raw ? (JSON.parse(raw) as ViewingRequest[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeAddedViewings(viewings: ViewingRequest[]) {
-  try {
-    localStorage.setItem(VIEWINGS_KEY, JSON.stringify(viewings));
-  } catch {
-    // localStorage unavailable (e.g. private mode) - requests just won't persist.
-  }
-}
-
-function readConfirmedIds(): string[] {
-  try {
-    const raw = localStorage.getItem(CONFIRMED_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeConfirmedIds(ids: string[]) {
-  try {
-    localStorage.setItem(CONFIRMED_KEY, JSON.stringify(ids));
-  } catch {
-    // localStorage unavailable - confirmations just won't persist.
-  }
-}
-
+/** Raw viewing store. Who may see or change what is decided in AppDataProvider. */
 export function useViewings() {
-  const [addedViewings, setAddedViewings] = useState<ViewingRequest[]>(() => readAddedViewings());
-  const [confirmedIds, setConfirmedIds] = useState<string[]>(() => readConfirmedIds());
+  const [seed] = useState(createSeedViewings);
+  const [viewings, setViewings] = useStoredState<ViewingRequest[]>(VIEWINGS_KEY, seed);
 
-  const scheduleViewing = useCallback((input: NewViewingInput) => {
-    const viewing: ViewingRequest = {
-      id: generateViewingId(),
-      propertyId: input.propertyId,
-      date: input.date,
-      time: input.time,
-      note: input.note,
-      confirmed: false,
-      createdAt: new Date().toISOString(),
-    };
-    setAddedViewings((prev) => {
-      const next = [...prev, viewing];
-      writeAddedViewings(next);
-      return next;
-    });
-  }, []);
-
-  const confirmViewing = useCallback((viewingId: string) => {
-    setConfirmedIds((prev) => {
-      if (prev.includes(viewingId)) return prev;
-      const next = [...prev, viewingId];
-      writeConfirmedIds(next);
-      return next;
-    });
-  }, []);
-
-  const viewings = useMemo(
-    () =>
-      [...seedViewings, ...addedViewings].map((viewing) =>
-        confirmedIds.includes(viewing.id) ? { ...viewing, confirmed: true } : viewing,
-      ),
-    [addedViewings, confirmedIds],
+  const scheduleViewing = useCallback(
+    (requester: AuthUser, input: NewViewingInput) => {
+      const viewing: ViewingRequest = {
+        id: newId("viewing"),
+        propertyId: input.propertyId,
+        requesterId: requester.id,
+        requesterEmail: requester.email,
+        date: input.date,
+        time: input.time,
+        note: input.note,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+      setViewings((prev) => [...prev, viewing]);
+    },
+    [setViewings],
   );
 
-  return { viewings, scheduleViewing, confirmViewing };
+  const setViewingStatus = useCallback(
+    (viewingId: string, status: ViewingStatus) => {
+      setViewings((prev) =>
+        prev.map((viewing) => (viewing.id === viewingId ? { ...viewing, status } : viewing)),
+      );
+    },
+    [setViewings],
+  );
+
+  return { viewings, scheduleViewing, setViewingStatus };
 }

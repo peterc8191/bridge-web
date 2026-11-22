@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ViewingForm } from "./ViewingForm";
+import { futureDate } from "../test/fixtures";
+
+const DATE = futureDate(14);
 
 function fillDateAndTime(date: string, time: string) {
   fireEvent.change(screen.getByLabelText(/date/i), { target: { value: date } });
@@ -13,13 +16,13 @@ describe("ViewingForm", () => {
     const onSubmit = vi.fn();
     render(<ViewingForm propertyId="p1" onSubmit={onSubmit} />);
 
-    fillDateAndTime("2026-09-10", "14:30");
+    fillDateAndTime(DATE, "14:30");
     await userEvent.type(screen.getByLabelText(/note/i), "  after 2pm please  ");
     await userEvent.click(screen.getByRole("button", { name: /request viewing/i }));
 
     expect(onSubmit).toHaveBeenCalledWith({
       propertyId: "p1",
-      date: "2026-09-10",
+      date: DATE,
       time: "14:30",
       note: "after 2pm please",
     });
@@ -29,12 +32,12 @@ describe("ViewingForm", () => {
     const onSubmit = vi.fn();
     render(<ViewingForm propertyId="p1" onSubmit={onSubmit} />);
 
-    fillDateAndTime("2026-09-10", "14:30");
+    fillDateAndTime(DATE, "14:30");
     await userEvent.click(screen.getByRole("button", { name: /request viewing/i }));
 
     expect(onSubmit).toHaveBeenCalledWith({
       propertyId: "p1",
-      date: "2026-09-10",
+      date: DATE,
       time: "14:30",
       note: "",
     });
@@ -51,7 +54,7 @@ describe("ViewingForm", () => {
   it("shows a confirmation message after a successful request and resets the fields", async () => {
     render(<ViewingForm propertyId="p1" onSubmit={vi.fn()} />);
 
-    fillDateAndTime("2026-09-10", "14:30");
+    fillDateAndTime(DATE, "14:30");
     await userEvent.click(screen.getByRole("button", { name: /request viewing/i }));
 
     expect(screen.getByRole("status")).toHaveTextContent(/viewing requested/i);

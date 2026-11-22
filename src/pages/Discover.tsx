@@ -1,18 +1,13 @@
 import { useMemo, useState } from "react";
-import type { Property, PropertyFilters } from "../types/property";
-import type { SwipeDirection } from "../hooks/usePropertyDeck";
+import type { PropertyFilters } from "../types/property";
 import { SwipeDeck } from "../components/SwipeDeck";
 import { FilterBar } from "../components/FilterBar";
+import { useAppData } from "../context/appDataContext";
 import { defaultFilters, filterProperties } from "../utils/filterProperties";
 import "./Discover.css";
 
-interface DiscoverProps {
-  deck: Property[];
-  onDecide: (property: Property, direction: SwipeDirection) => void;
-  reduceMotion?: boolean;
-}
-
-export function Discover({ deck, onDecide, reduceMotion = false }: DiscoverProps) {
+export function Discover() {
+  const { deck, decide, undo, canUndo, reduceMotion } = useAppData();
   const [filters, setFilters] = useState<PropertyFilters>(defaultFilters);
 
   const locations = useMemo(
@@ -38,7 +33,13 @@ export function Discover({ deck, onDecide, reduceMotion = false }: DiscoverProps
           <p className="discover-page__no-matches-hint">Try widening the filters above.</p>
         </div>
       ) : (
-        <SwipeDeck deck={filteredDeck} onDecide={onDecide} reduceMotion={reduceMotion} />
+        <SwipeDeck
+          deck={filteredDeck}
+          onDecide={decide}
+          onUndo={undo}
+          canUndo={canUndo}
+          reduceMotion={reduceMotion}
+        />
       )}
     </main>
   );

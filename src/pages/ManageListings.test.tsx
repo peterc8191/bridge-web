@@ -1,88 +1,62 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ManageListings } from "./ManageListings";
-import { properties } from "../data/properties";
-import type { AuthUser } from "../types/auth";
+import { renderWithAppData } from "../test/appData";
+import { landlord, makeProperty } from "../test/fixtures";
 
-const landlord: AuthUser = { id: "u1", email: "landlorda@abc.com", role: "landlord" };
-const genericUser: AuthUser = { id: "u2", email: "usera@abc.com", role: "user" };
+const sale = makeProperty({ id: "p1", address: "142 Maple Street", price: 549000 });
+const rental = makeProperty({ id: "p2", address: "27 Elm Court", price: 1650, listingType: "rent" });
 
-function renderManageListings(currentUser: AuthUser | null, onDeleteProperty = vi.fn()) {
-  return render(
-    <MemoryRouter initialEntries={["/manage-listings"]}>
-      <Routes>
-        <Route
-          path="/manage-listings"
-          element={
-            <ManageListings
-              currentUser={currentUser}
-              properties={properties}
-              onDeleteProperty={onDeleteProperty}
-            />
-          }
-        />
-        <Route path="/" element={<div>Home page</div>} />
-      </Routes>
-    </MemoryRouter>,
-  );
+function renderPage(myListings = [sale, rental]) {
+  return renderWithAppData(<ManageListings />, {
+    path: "/manage-listings",
+    data: { currentUser: landlord, myListings, properties: myListings },
+  });
 }
 
 describe("ManageListings", () => {
-  it("redirects home for a non-landlord", () => {
-    renderManageListings(genericUser);
-    expect(screen.getByText("Home page")).toBeInTheDocument();
+  afterEach(() => vi.restoreAllMocks());
+
+  it("lists only the landlord's own listings", () => {
+    renderPage();
+    const items = within(screen.getByTestId("manage-listings-list")).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
   });
 
-  it("redirects home when logged out", () => {
-    renderManageListings(null);
-    expect(screen.getByText("Home page")).toBeInTheDocument();
-  });
-
-  it("lists every property for a landlord", () => {
-    renderManageListings(landlord);
-    const list = screen.getByTestId("manage-listings-list");
-    expect(list.querySelectorAll("li")).toHaveLength(properties.length);
-    expect(screen.getByText(properties[0].address)).toBeInTheDocument();
+  it("shows an empty state when the landlord has no listings", () => {
+    renderPage([]);
+    expect(screen.getByText(/haven't listed any properties/i)).toBeInTheDocument();
   });
 
   it("shows each listing's formatted price and listing-type badge", () => {
-    renderManageListings(landlord);
-    const rental = properties.find((p) => p.listingType === "rent")!;
-    expect(screen.getAllByText("For Sale").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("For Rent").length).toBeGreaterThan(0);
-    expect(screen.getByText(new RegExp(`\\$${rental.price.toLocaleString()}/mo`))).toBeInTheDocument();
+    renderPage();
+    expect(screen.getByText(/\$549,000/)).toBeInTheDocument();
+    expect(screen.getByText(/\$1,650\/mo/)).toBeInTheDocument();
+    expect(screen.getByText("For Sale")).toBeInTheDocument();
+    expect(screen.getByText("For Rent")).toBeInTheDocument();
   });
 
-  it("links each listing's Edit button to its edit route", () => {
-    renderManageListings(landlord);
-    expect(screen.getAllByRole("link", { name: /edit/i })[0]).toHaveAttribute(
-      "href",
-      `/manage-listings/${properties[0].id}/edit`,
-    );
-  });
-
-  it("links Add new listing to the create route", () => {
-    renderManageListings(landlord);
-    expect(screen.getByRole("link", { name: /add new listing/i })).toHaveAttribute(
-      "href",
-      "/manage-listings/new",
-    );
+  it("links Edit to each listing's edit route and Add to the create route", () => {
+    renderPage();
+    const editLinks = screen.getAllByRole("link", { name: /edit/i });
+    expect(editLinks.map((link) => link.getAttribute("href"))).toEqual([
+      "/manage-listings/p1/edit",
+      "/manage-listings/p2/edit",
+    ]);
+    expect(screen.getByRole("link", { name: /add new listing/i })).toHaveAttribute("href", "/manage-listings/new");
   });
 
   it("deletes a listing only after confirmation", async () => {
-    const onDeleteProperty = vi.fn();
-    renderManageListings(landlord, onDeleteProperty);
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const { data } = renderPage();
+    const deleteFirst = () => userEvent.click(screen.getAllByRole("button", { name: /delete/i })[0]);
 
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    await userEvent.click(screen.getAllByRole("button", { name: /delete/i })[0]);
-    expect(onDeleteProperty).not.toHaveBeenCalled();
+    await deleteFirst();
+    expect(data.deleteProperty).not.toHaveBeenCalled();
 
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    await userEvent.click(screen.getAllByRole("button", { name: /delete/i })[0]);
-    expect(onDeleteProperty).toHaveBeenCalledWith(properties[0].id);
-
-    vi.restoreAllMocks();
+    await deleteFirst();
+    expect(confirm).toHaveBeenCalledTimes(2);
+    expect(data.deleteProperty).toHaveBeenCalledWith("p1");
   });
 });

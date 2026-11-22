@@ -73,3 +73,15 @@
   font-size: 0.8rem;
   color: var(--color-text-subtle);
 }
+
+.filter-bar__field input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filter-bar__hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-subtle);
+}

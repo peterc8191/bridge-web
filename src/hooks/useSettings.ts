@@ -1,35 +1,28 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ResolvedTheme, Theme } from "../types/settings";
+import { useStoredState } from "./useStoredState";
 
+// Appearance settings are per device (not per account) - a dark-mode choice
+// belongs to the screen, not the person. Kept on their v1 keys so existing
+// choices survive the v2 storage migration.
 const THEME_KEY = "bridge:theme";
 const REDUCE_MOTION_KEY = "bridge:reduce-motion";
-
-function readTheme(): Theme {
-  try {
-    const raw = localStorage.getItem(THEME_KEY);
-    return raw === "light" || raw === "dark" || raw === "system" ? raw : "system";
-  } catch {
-    return "system";
-  }
-}
-
-function readReduceMotion(): boolean {
-  try {
-    return localStorage.getItem(REDUCE_MOTION_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
 
 function resolveSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined" || typeof window.matchMedia !== "function") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
+function isTheme(value: unknown): value is Theme {
+  return value === "light" || value === "dark" || value === "system";
+}
+
 export function useSettings() {
-  const [theme, setThemeState] = useState<Theme>(() => readTheme());
-  const [reduceMotion, setReduceMotionState] = useState<boolean>(() => readReduceMotion());
+  const [storedTheme, setTheme] = useStoredState<Theme>(THEME_KEY, "system");
+  const [reduceMotion, setReduceMotion] = useStoredState<boolean>(REDUCE_MOTION_KEY, false);
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => resolveSystemTheme());
+
+  const theme: Theme = isTheme(storedTheme) ? storedTheme : "system";
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
@@ -45,23 +38,5 @@ export function useSettings() {
     document.documentElement.dataset.theme = resolvedTheme;
   }, [resolvedTheme]);
 
-  const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
-    try {
-      localStorage.setItem(THEME_KEY, next);
-    } catch {
-      // localStorage unavailable (e.g. private mode) - choice just won't persist.
-    }
-  }, []);
-
-  const setReduceMotion = useCallback((next: boolean) => {
-    setReduceMotionState(next);
-    try {
-      localStorage.setItem(REDUCE_MOTION_KEY, String(next));
-    } catch {
-      // localStorage unavailable - choice just won't persist.
-    }
-  }, []);
-
-  return { theme, setTheme, resolvedTheme, reduceMotion, setReduceMotion };
+  return { theme, setTheme, resolvedTheme, reduceMotion: reduceMotion === true, setReduceMotion };
 }

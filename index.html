@@ -10,7 +10,29 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="Bridge" />
+    <meta name="description" content="Swipe through property listings, save favorites, report issues, and arrange viewings." />
     <title>Bridge</title>
+    <script>
+      // Runs before the app. Restores routes that reached us via a redirect:
+      (function (l) {
+        // 1. GitHub Pages 404.html sends /base/saved as /base/?/saved
+        //    (see githubPagesSpaFallback in vite.config.ts).
+        if (l.search[1] === "/") {
+          var decoded = l.search
+            .slice(1)
+            .split("&")
+            .map(function (s) {
+              return s.replace(/~and~/g, "&");
+            })
+            .join("?");
+          window.history.replaceState(null, "", l.pathname.slice(0, -1) + decoded + l.hash);
+        }
+        // 2. Links from the old HashRouter build (/base/#/saved) still work.
+        else if (l.hash.indexOf("#/") === 0) {
+          window.history.replaceState(null, "", l.pathname.replace(/\/?$/, "/") + l.hash.slice(2));
+        }
+      })(window.location);
+    </script>
   </head>
   <body>
     <div id="root"></div>

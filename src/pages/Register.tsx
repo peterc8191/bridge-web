@@ -1,15 +1,14 @@
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
-import type { AuthResult, AuthUser } from "../types/auth";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { useAppData } from "../context/appDataContext";
+import { redirectTarget } from "../utils/redirectTarget";
 import "./AuthForm.css";
 
-interface RegisterProps {
-  currentUser: AuthUser | null;
-  onRegister: (email: string, password: string) => Promise<AuthResult>;
-}
-
-export function Register({ currentUser, onRegister }: RegisterProps) {
+export function Register() {
+  const { currentUser, register: onRegister } = useAppData();
   const navigate = useNavigate();
+  const location = useLocation();
+  const target = redirectTarget(location.state);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -17,7 +16,7 @@ export function Register({ currentUser, onRegister }: RegisterProps) {
   const [submitting, setSubmitting] = useState(false);
 
   if (currentUser) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={target} replace />;
   }
 
   const handleSubmit = async (event: FormEvent) => {
@@ -37,7 +36,7 @@ export function Register({ currentUser, onRegister }: RegisterProps) {
       setError(result.error);
       return;
     }
-    navigate("/");
+    navigate(target, { replace: true });
   };
 
   return (
@@ -90,7 +89,9 @@ export function Register({ currentUser, onRegister }: RegisterProps) {
         </button>
 
         <p className="auth-form__switch">
-          Already have an account? <Link to="/login">Log in</Link>
+          Already have an account? <Link to="/login" state={location.state}>
+            Log in
+          </Link>
         </p>
       </form>
     </main>
