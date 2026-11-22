@@ -1,12 +1,12 @@
 import type { TraderProfile } from "../types/traderProfile";
 
-// Seed profile for the seeded tradesperson test account (tradea@abc.com,
-// user id "user-seed-3" in src/data/authUsers.ts) so it isn't empty on first
-// login, and so the seed tenders below have a plausible origin.
+// Seed profile for the seeded tradesperson (tradea@abc.com, "user-seed-3").
+// Its areas cover both seed issues' properties (p3 Denver, p7 Minneapolis) so
+// the trader can tender on them; issues elsewhere are hidden from them.
 export const seedTraderProfiles: Record<string, TraderProfile> = {
   "user-seed-3": {
     services: ["Plumbing", "Electrical", "General repairs"],
-    areas: ["Portland, OR", "Seattle, WA", "Beaverton, OR"],
+    areas: ["Denver, CO", "Minneapolis, MN", "Portland, OR"],
     bio: "Licensed and insured handyman with 10+ years experience in residential repairs.",
   },
 };

@@ -1,150 +1,82 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { useTenders } from "./useTenders";
 import { seedTenders } from "../data/tenders";
+import { trader } from "../test/fixtures";
+
+const profile = { services: ["Plumbing"], areas: ["Denver, CO"], bio: "" };
 
 describe("useTenders", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
   it("starts with the seed tenders", () => {
     const { result } = renderHook(() => useTenders());
-    expect(result.current.tenders).toHaveLength(seedTenders.length);
-    expect(result.current.tenders.map((t) => t.id)).toEqual(seedTenders.map((t) => t.id));
+    expect(result.current.tenders).toEqual(seedTenders);
   });
 
-  it("addTender appends a new pending tender", () => {
+  it("addTender appends a pending tender with the trader's identity and profile snapshot", () => {
     const { result } = renderHook(() => useTenders());
+    act(() => result.current.addTender(trader, profile, { issueId: "issue-x", amount: 120, message: "Hi" }));
 
-    act(() => {
-      result.current.addTender({
-        issueId: "issue-seed-2",
-        traderId: "user-seed-3",
-        traderEmail: "tradea@abc.com",
-        traderServices: ["Plumbing"],
-        traderAreas: ["Portland, OR"],
-        amount: 200,
-        message: "Can start Monday.",
-      });
+    expect(result.current.tenders.at(-1)).toMatchObject({
+      issueId: "issue-x",
+      traderId: trader.id,
+      traderEmail: trader.email,
+      traderServices: ["Plumbing"],
+      traderAreas: ["Denver, CO"],
+      amount: 120,
+      message: "Hi",
+      status: "pending",
     });
-
-    expect(result.current.tenders).toHaveLength(seedTenders.length + 1);
-    const added = result.current.tenders.find((t) => t.message === "Can start Monday.");
-    expect(added).toBeDefined();
-    expect(added?.status).toBe("pending");
-    expect(added?.createdAt).toBeTruthy();
   });
 
   it("persists added tenders across hook instances", () => {
-    const { result, unmount } = renderHook(() => useTenders());
+    const first = renderHook(() => useTenders());
+    act(() => first.result.current.addTender(trader, profile, { issueId: "issue-x", amount: 1, message: "m" }));
+    first.unmount();
 
-    act(() => {
-      result.current.addTender({
-        issueId: "issue-seed-2",
-        traderId: "user-seed-3",
-        traderEmail: "tradea@abc.com",
-        traderServices: [],
-        traderAreas: [],
-        amount: 100,
-        message: "Second quote.",
-      });
-    });
-    unmount();
-
-    const { result: second } = renderHook(() => useTenders());
-    expect(second.current.tenders).toHaveLength(seedTenders.length + 1);
+    const { result } = renderHook(() => useTenders());
+    expect(result.current.tenders).toHaveLength(seedTenders.length + 1);
   });
 
   describe("acceptTender", () => {
-    it("marks the target tender accepted", () => {
-      const { result } = renderHook(() => useTenders());
-      const pendingSeed = seedTenders.find((t) => t.status === "pending")!;
-
+    function setup() {
+      const hook = renderHook(() => useTenders());
       act(() => {
-        result.current.acceptTender(pendingSeed.id);
+        hook.result.current.addTender(trader, profile, { issueId: "A", amount: 100, message: "a1" });
+        hook.result.current.addTender({ ...trader, id: "t2" }, profile, { issueId: "A", amount: 90, message: "a2" });
+        hook.result.current.addTender({ ...trader, id: "t3" }, profile, { issueId: "B", amount: 80, message: "b1" });
       });
+      const byMessage = (message: string) =>
+        hook.result.current.tenders.find((tender) => tender.message === message)!;
+      return { hook, byMessage };
+    }
 
-      expect(result.current.tenders.find((t) => t.id === pendingSeed.id)?.status).toBe("accepted");
+    it("accepts the target and rejects other pending tenders on the same issue only", () => {
+      const { hook, byMessage } = setup();
+      act(() => hook.result.current.acceptTender(byMessage("a1").id));
+
+      expect(byMessage("a1").status).toBe("accepted");
+      expect(byMessage("a2").status).toBe("rejected");
+      expect(byMessage("b1").status).toBe("pending");
     });
 
-    it("rejects other pending tenders on the same issue, leaves other issues' tenders alone", () => {
+    it("does not change tenders that were already decided", () => {
+      // Seed: tender-seed-1 accepted, tender-seed-2 rejected, both on issue-seed-1.
       const { result } = renderHook(() => useTenders());
+      act(() => result.current.acceptTender("tender-seed-3"));
 
-      // Add two competing pending tenders on the same issue.
-      act(() => {
-        result.current.addTender({
-          issueId: "issue-seed-2",
-          traderId: "trader-a",
-          traderEmail: "a@example.com",
-          traderServices: [],
-          traderAreas: [],
-          amount: 100,
-          message: "Quote A",
-        });
-      });
-      act(() => {
-        result.current.addTender({
-          issueId: "issue-seed-2",
-          traderId: "trader-b",
-          traderEmail: "b@example.com",
-          traderServices: [],
-          traderAreas: [],
-          amount: 120,
-          message: "Quote B",
-        });
-      });
-
-      const quoteA = result.current.tenders.find((t) => t.message === "Quote A")!;
-      const quoteB = result.current.tenders.find((t) => t.message === "Quote B")!;
-      // A seed tender already pending on the same issue (issue-seed-2) should
-      // also get rejected by accepting quote A.
-      const pendingSeedOnSameIssue = seedTenders.find(
-        (t) => t.issueId === "issue-seed-2" && t.status === "pending",
-      )!;
-      // Seed tender on a different issue (issue-seed-1) that's already accepted -
-      // should be untouched by accepting a tender on issue-seed-2.
-      const unrelatedSeed = seedTenders.find((t) => t.issueId === "issue-seed-1")!;
-
-      act(() => {
-        result.current.acceptTender(quoteA.id);
-      });
-
-      expect(result.current.tenders.find((t) => t.id === quoteA.id)?.status).toBe("accepted");
-      expect(result.current.tenders.find((t) => t.id === quoteB.id)?.status).toBe("rejected");
-      expect(result.current.tenders.find((t) => t.id === pendingSeedOnSameIssue.id)?.status).toBe(
-        "rejected",
-      );
-      expect(result.current.tenders.find((t) => t.id === unrelatedSeed.id)?.status).toBe(
-        unrelatedSeed.status,
-      );
-    });
-
-    it("does not un-reject or un-accept tenders that were already decided", () => {
-      const { result } = renderHook(() => useTenders());
-      const alreadyRejected = seedTenders.find((t) => t.status === "rejected")!;
-      const pendingSeed = seedTenders.find((t) => t.status === "pending")!;
-
-      act(() => {
-        result.current.acceptTender(pendingSeed.id);
-      });
-
-      // The already-rejected seed tender (on a different issue) stays rejected,
-      // not flipped to anything else.
-      expect(result.current.tenders.find((t) => t.id === alreadyRejected.id)?.status).toBe("rejected");
+      const status = (id: string) => result.current.tenders.find((t) => t.id === id)?.status;
+      expect(status("tender-seed-1")).toBe("accepted");
+      expect(status("tender-seed-2")).toBe("rejected");
+      expect(status("tender-seed-3")).toBe("accepted");
     });
 
     it("persists an acceptance across hook instances", () => {
-      const { result, unmount } = renderHook(() => useTenders());
-      const pendingSeed = seedTenders.find((t) => t.status === "pending")!;
+      const first = renderHook(() => useTenders());
+      act(() => first.result.current.acceptTender("tender-seed-3"));
+      first.unmount();
 
-      act(() => {
-        result.current.acceptTender(pendingSeed.id);
-      });
-      unmount();
-
-      const { result: second } = renderHook(() => useTenders());
-      expect(second.current.tenders.find((t) => t.id === pendingSeed.id)?.status).toBe("accepted");
+      const { result } = renderHook(() => useTenders());
+      expect(result.current.tenders.find((t) => t.id === "tender-seed-3")?.status).toBe("accepted");
     });
   });
 });

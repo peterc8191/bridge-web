@@ -1,103 +1,73 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
 import { Settings } from "./Settings";
-
-function renderSettings(overrides: Partial<Parameters<typeof Settings>[0]> = {}) {
-  const props = {
-    currentUser: null,
-    onLogout: vi.fn(),
-    theme: "system" as const,
-    onThemeChange: vi.fn(),
-    resolvedTheme: "light" as const,
-    reduceMotion: false,
-    onReduceMotionChange: vi.fn(),
-    onResetProperties: vi.fn(),
-    onClearIssues: vi.fn(),
-    ...overrides,
-  };
-  render(
-    <MemoryRouter>
-      <Settings {...props} />
-    </MemoryRouter>,
-  );
-  return props;
-}
+import { renderWithAppData } from "../test/appData";
+import { landlord, tenant } from "../test/fixtures";
 
 describe("Settings page", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+  afterEach(() => vi.restoreAllMocks());
 
   describe("Account section", () => {
-    it("shows a signed-out prompt with links to log in or register when logged out", () => {
-      renderSettings({ currentUser: null });
+    it("shows a signed-out prompt with links to log in or register", () => {
+      renderWithAppData(<Settings />);
       expect(screen.getByText(/you're not signed in/i)).toBeInTheDocument();
       expect(screen.getByRole("link", { name: /^log in$/i })).toHaveAttribute("href", "/login");
-      expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute(
-        "href",
-        "/register",
-      );
+      expect(screen.getByRole("link", { name: /create an account/i })).toHaveAttribute("href", "/register");
     });
 
-    it("shows the signed-in email and role when logged in", () => {
-      renderSettings({ currentUser: { id: "u1", email: "landlorda@abc.com", role: "landlord" } });
-      expect(screen.getByText("landlorda@abc.com")).toBeInTheDocument();
+    it("shows the signed-in email and role, and logs out", async () => {
+      const { data } = renderWithAppData(<Settings />, { data: { currentUser: landlord } });
+      expect(screen.getByText(landlord.email)).toBeInTheDocument();
       expect(screen.getByText("Landlord")).toBeInTheDocument();
-    });
-
-    it("calls onLogout when Log out is clicked", async () => {
-      const onLogout = vi.fn();
-      renderSettings({ currentUser: { id: "u1", email: "user@example.com", role: "user" }, onLogout });
       await userEvent.click(screen.getByRole("button", { name: /log out/i }));
-      expect(onLogout).toHaveBeenCalledTimes(1);
+      expect(data.logout).toHaveBeenCalled();
     });
   });
 
-  it("shows the current resolved theme when set to 'system'", () => {
-    renderSettings({ theme: "system", resolvedTheme: "dark" });
-    expect(screen.getByText(/currently using dark based on your system/i)).toBeInTheDocument();
-  });
+  it("shows the resolved theme only while following the system", () => {
+    const { unmount } = renderWithAppData(<Settings />, { data: { theme: "system", resolvedTheme: "dark" } });
+    expect(screen.getByText(/currently using dark/i)).toBeInTheDocument();
+    unmount();
 
-  it("does not show the resolved-theme hint when a theme is explicitly chosen", () => {
-    renderSettings({ theme: "light" });
+    renderWithAppData(<Settings />, { data: { theme: "light" } });
     expect(screen.queryByText(/currently using/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Light")).toBeChecked();
   });
 
-  it("calls onThemeChange when a theme option is selected", async () => {
-    const props = renderSettings({ theme: "system" });
-    await userEvent.click(screen.getByRole("radio", { name: "Dark" }));
-    expect(props.onThemeChange).toHaveBeenCalledWith("dark");
+  it("changes theme and reduce-motion", async () => {
+    const { data } = renderWithAppData(<Settings />);
+    await userEvent.click(screen.getByLabelText("Dark"));
+    expect(data.setTheme).toHaveBeenCalledWith("dark");
+    await userEvent.click(screen.getByLabelText(/reduce motion/i));
+    expect(data.setReduceMotion).toHaveBeenCalledWith(true);
   });
 
-  it("reflects the current theme selection", () => {
-    renderSettings({ theme: "dark" });
-    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Light" })).not.toBeChecked();
+  it("resets saved/passed properties only after confirmation", async () => {
+    vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const { data } = renderWithAppData(<Settings />);
+    const button = screen.getByRole("button", { name: /reset saved/i });
+
+    await userEvent.click(button);
+    expect(data.resetDeck).not.toHaveBeenCalled();
+    await userEvent.click(button);
+    expect(data.resetDeck).toHaveBeenCalled();
   });
 
-  it("calls onReduceMotionChange when the checkbox is toggled", async () => {
-    const props = renderSettings({ reduceMotion: false });
-    await userEvent.click(screen.getByRole("checkbox", { name: /reduce motion/i }));
-    expect(props.onReduceMotionChange).toHaveBeenCalledWith(true);
+  it("clears the signed-in user's own issues only after confirmation", async () => {
+    vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    const { data } = renderWithAppData(<Settings />, { data: { currentUser: tenant } });
+    const button = screen.getByRole("button", { name: /clear issues i've reported/i });
+
+    await userEvent.click(button);
+    expect(data.clearMyIssues).not.toHaveBeenCalled();
+    await userEvent.click(button);
+    expect(data.clearMyIssues).toHaveBeenCalled();
+    expect(screen.getByText(/applies to tenant@test.com only/i)).toBeInTheDocument();
   });
 
-  it("resets properties only after the user confirms", async () => {
-    const props = renderSettings();
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    await userEvent.click(screen.getByRole("button", { name: /reset saved & passed properties/i }));
-    expect(props.onResetProperties).not.toHaveBeenCalled();
-
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    await userEvent.click(screen.getByRole("button", { name: /reset saved & passed properties/i }));
-    expect(props.onResetProperties).toHaveBeenCalledTimes(1);
-  });
-
-  it("clears issues only after the user confirms", async () => {
-    const props = renderSettings();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    await userEvent.click(screen.getByRole("button", { name: /clear reported issues/i }));
-    expect(props.onClearIssues).toHaveBeenCalledTimes(1);
+  it("hides the clear-issues action for guests", () => {
+    renderWithAppData(<Settings />);
+    expect(screen.queryByRole("button", { name: /clear issues/i })).not.toBeInTheDocument();
   });
 });

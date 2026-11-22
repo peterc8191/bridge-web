@@ -16,6 +16,10 @@ interface FilterBarProps {
   resultCount: number;
 }
 
+function priceLabel(bound: "Min" | "Max", listingType: ListingType | null): string {
+  return listingType === "rent" ? `${bound} rent ($/mo)` : `${bound} price`;
+}
+
 function toNullableNumber(value: string): number | null {
   if (value === "") return null;
   const parsed = Number(value);
@@ -26,6 +30,8 @@ export function FilterBar({ filters, onChange, locations, resultCount }: FilterB
   const [expanded, setExpanded] = useState(false);
   const active = hasActiveFilters(filters);
   const activeCount = countActiveFilters(filters);
+  const priceDisabled = filters.listingType == null;
+  const priceStep = filters.listingType === "rent" ? 100 : 10000;
 
   return (
     <div className="filter-bar" data-testid="filter-bar">
@@ -52,6 +58,10 @@ export function FilterBar({ filters, onChange, locations, resultCount }: FilterB
                 onChange({
                   ...filters,
                   listingType: event.target.value === "" ? null : (event.target.value as ListingType),
+                  // Sale totals and monthly rents aren't comparable, so a price
+                  // range never carries over when the listing type changes.
+                  minPrice: null,
+                  maxPrice: null,
                 })
               }
             >
@@ -80,13 +90,15 @@ export function FilterBar({ filters, onChange, locations, resultCount }: FilterB
           </label>
 
           <label className="filter-bar__field">
-            <span>Min price</span>
+            <span>{priceLabel("Min", filters.listingType)}</span>
             <input
               type="number"
               inputMode="numeric"
               min={0}
-              step={10000}
-              placeholder="No min"
+              step={priceStep}
+              placeholder={priceDisabled ? "Pick sale or rent" : "No min"}
+              disabled={priceDisabled}
+              aria-describedby={priceDisabled ? "filter-bar-price-hint" : undefined}
               value={filters.minPrice ?? ""}
               onChange={(event) =>
                 onChange({ ...filters, minPrice: toNullableNumber(event.target.value) })
@@ -95,19 +107,27 @@ export function FilterBar({ filters, onChange, locations, resultCount }: FilterB
           </label>
 
           <label className="filter-bar__field">
-            <span>Max price</span>
+            <span>{priceLabel("Max", filters.listingType)}</span>
             <input
               type="number"
               inputMode="numeric"
               min={0}
-              step={10000}
-              placeholder="No max"
+              step={priceStep}
+              placeholder={priceDisabled ? "Pick sale or rent" : "No max"}
+              disabled={priceDisabled}
+              aria-describedby={priceDisabled ? "filter-bar-price-hint" : undefined}
               value={filters.maxPrice ?? ""}
               onChange={(event) =>
                 onChange({ ...filters, maxPrice: toNullableNumber(event.target.value) })
               }
             />
           </label>
+
+          {priceDisabled && (
+            <p className="filter-bar__hint" id="filter-bar-price-hint">
+              Choose sale or rent to filter by price.
+            </p>
+          )}
 
           <label className="filter-bar__field">
             <span>Bedrooms</span>

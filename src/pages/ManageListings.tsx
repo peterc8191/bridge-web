@@ -1,20 +1,13 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { Property } from "../types/property";
-import type { AuthUser } from "../types/auth";
 import { ListingTypeBadge } from "../components/ListingTypeBadge";
+import { useAppData } from "../context/appDataContext";
 import { formatPrice } from "../utils/formatPrice";
 import "./ManageListings.css";
 
-interface ManageListingsProps {
-  currentUser: AuthUser | null;
-  properties: Property[];
-  onDeleteProperty: (id: string) => void;
-}
-
-export function ManageListings({ currentUser, properties, onDeleteProperty }: ManageListingsProps) {
-  if (currentUser?.role !== "landlord") {
-    return <Navigate to="/" replace />;
-  }
+// Landlord-only (guarded by <RequireAuth role="landlord"> in App.tsx).
+export function ManageListings() {
+  const { myListings: properties, deleteProperty: onDeleteProperty } = useAppData();
 
   const handleDelete = (property: Property) => {
     if (window.confirm(`Delete ${property.address}? This can't be undone.`)) {
@@ -25,14 +18,14 @@ export function ManageListings({ currentUser, properties, onDeleteProperty }: Ma
   return (
     <main className="manage-listings">
       <div className="manage-listings__header">
-        <h1>Manage listings</h1>
+        <h1>Your listings</h1>
         <Link to="/manage-listings/new" className="manage-listings__add-btn">
           Add new listing
         </Link>
       </div>
 
       {properties.length === 0 ? (
-        <p className="manage-listings__empty">No listings yet.</p>
+        <p className="manage-listings__empty">You haven't listed any properties yet.</p>
       ) : (
         <ul className="manage-listings__list" data-testid="manage-listings-list">
           {properties.map((property) => (

@@ -8,7 +8,17 @@ import type { ViewingRequest } from "../types/viewing";
 const now = new Date(2026, 7, 17, 12, 0, 0, 0);
 
 function viewing(id: string, date: string, time: string): ViewingRequest {
-  return { id, propertyId: "p1", date, time, note: "", confirmed: false, createdAt: "" };
+  return {
+    id,
+    propertyId: "p1",
+    requesterId: "u1",
+    requesterEmail: "u1@test.com",
+    date,
+    time,
+    note: "",
+    status: "pending",
+    createdAt: "",
+  };
 }
 
 describe("splitViewingsByTime", () => {

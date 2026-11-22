@@ -1,42 +1,43 @@
 import type { ViewingRequest } from "../types/viewing";
 
-// Seed viewings so the Viewings page isn't empty on first load, and shows an
-// example of each state: past/upcoming crossed with confirmed/pending.
-export const seedViewings: ViewingRequest[] = [
-  {
-    id: "viewing-seed-1",
-    propertyId: "p1",
-    date: "2026-06-10",
-    time: "11:00",
-    note: "",
-    confirmed: true,
-    createdAt: "2026-06-01T09:00:00.000Z",
-  },
-  {
-    id: "viewing-seed-2",
-    propertyId: "p4",
-    date: "2026-07-02",
-    time: "15:00",
-    note: "",
-    confirmed: false,
-    createdAt: "2026-06-25T09:00:00.000Z",
-  },
-  {
-    id: "viewing-seed-3",
-    propertyId: "p2",
-    date: "2026-09-20",
-    time: "13:00",
-    note: "Bringing my partner along",
-    confirmed: true,
-    createdAt: "2026-08-10T09:00:00.000Z",
-  },
-  {
-    id: "viewing-seed-4",
-    propertyId: "p6",
-    date: "2026-10-05",
-    time: "10:30",
-    note: "",
-    confirmed: false,
-    createdAt: "2026-08-12T09:00:00.000Z",
-  },
-];
+// Dates are relative to first load so there are always both upcoming and past
+// examples, whatever day the app is opened.
+function daysFromNow(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function seedViewing(
+  id: string,
+  propertyId: string,
+  offsetDays: number,
+  time: string,
+  status: ViewingRequest["status"],
+  note = "",
+): ViewingRequest {
+  return {
+    id,
+    propertyId,
+    requesterId: "user-seed-1",
+    requesterEmail: "usera@abc.com",
+    date: daysFromNow(offsetDays),
+    time,
+    note,
+    status,
+    createdAt: new Date(Date.now() + (offsetDays - 7) * 86_400_000).toISOString(),
+  };
+}
+
+// Requested by the seeded user on landlord A's listings (p1, p2, p4, p6),
+// covering past/upcoming x confirmed/pending plus a declined one.
+export function createSeedViewings(): ViewingRequest[] {
+  return [
+    seedViewing("viewing-seed-1", "p1", -30, "11:00", "confirmed"),
+    seedViewing("viewing-seed-2", "p4", -10, "15:00", "pending"),
+    seedViewing("viewing-seed-3", "p2", 5, "13:00", "confirmed", "Bringing my partner along"),
+    seedViewing("viewing-seed-4", "p6", 12, "10:30", "pending"),
+    seedViewing("viewing-seed-5", "p8", 8, "17:00", "declined"),
+  ];
+}

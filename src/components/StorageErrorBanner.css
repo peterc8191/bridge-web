@@ -1,0 +1,18 @@
+.storage-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--status-open-bg);
+  color: var(--status-open-text);
+  font-size: 0.85rem;
+}
+
+.storage-error-banner button {
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+}

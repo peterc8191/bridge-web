@@ -4,6 +4,12 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { NavBar } from "./NavBar";
 import type { AuthUser } from "../types/auth";
+import { AppDataContext } from "../context/appDataContext";
+import { makeAppData } from "../test/appData";
+import { makeProperty } from "../test/fixtures";
+
+const mockCounts = vi.hoisted(() => ({ viewings: 0, issues: 0 }));
+vi.mock("../lib/navCounts", () => ({ navCounts: () => mockCounts }));
 
 function LocationProbe() {
   const location = useLocation();
@@ -27,15 +33,18 @@ function renderNavBar(
     currentUser = null,
     onLogout = vi.fn(),
   } = options;
+  mockCounts.viewings = viewingCount;
+  mockCounts.issues = issueCount;
+  const data = makeAppData({
+    currentUser,
+    logout: onLogout,
+    saved: Array.from({ length: savedCount }, (_, i) => makeProperty({ id: `p${i}` })),
+  });
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <NavBar
-        savedCount={savedCount}
-        issueCount={issueCount}
-        viewingCount={viewingCount}
-        currentUser={currentUser}
-        onLogout={onLogout}
-      />
+      <AppDataContext.Provider value={data}>
+        <NavBar />
+      </AppDataContext.Provider>
       <LocationProbe />
     </MemoryRouter>,
   );

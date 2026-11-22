@@ -111,3 +111,19 @@
   font-size: 1.1rem;
   color: var(--color-text);
 }
+
+.property-detail__owner-note,
+.property-detail__login-hint {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.property-detail__owner-note a,
+.property-detail__login-hint a {
+  color: var(--color-accent);
+}

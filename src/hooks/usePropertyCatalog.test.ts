@@ -1,118 +1,72 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 import { usePropertyCatalog } from "./usePropertyCatalog";
 import { properties as seedProperties } from "../data/properties";
 import type { PropertyInput } from "../types/property";
 
-const newListingInput: PropertyInput = {
-  address: "9 New Build Ave",
-  city: "Denver, CO",
-  price: 425000,
+const input: PropertyInput = {
+  address: "1 New Road",
+  city: "Austin, TX",
+  price: 450000,
   listingType: "sale",
   beds: 2,
-  baths: 2,
-  sqft: 1100,
-  description: "Freshly listed condo.",
+  baths: 1,
+  sqft: 900,
+  description: "New listing.",
   images: ["https://example.com/new.jpg"],
+  tenantEmails: [],
 };
 
 describe("usePropertyCatalog", () => {
-  beforeEach(() => {
-    localStorage.clear();
+  it("starts with exactly the seed properties, each with an owner", () => {
+    const { result } = renderHook(() => usePropertyCatalog());
+    expect(result.current.properties).toEqual(seedProperties);
+    expect(result.current.properties.every((property) => property.ownerId)).toBe(true);
   });
 
-  it("starts with exactly the seed properties", () => {
+  it("addProperty appends a listing owned by the given landlord and returns its id", () => {
     const { result } = renderHook(() => usePropertyCatalog());
-    expect(result.current.properties).toHaveLength(seedProperties.length);
-    expect(result.current.properties.map((p) => p.id)).toEqual(seedProperties.map((p) => p.id));
-  });
-
-  it("addProperty appends a new listing and returns its id", () => {
-    const { result } = renderHook(() => usePropertyCatalog());
-
-    let newId = "";
+    let id = "";
     act(() => {
-      newId = result.current.addProperty(newListingInput);
+      id = result.current.addProperty("landlord-1", input);
     });
 
-    expect(result.current.properties).toHaveLength(seedProperties.length + 1);
-    const created = result.current.properties.find((p) => p.id === newId);
-    expect(created).toMatchObject(newListingInput);
+    expect(id).toMatch(/^property-[0-9a-f-]{36}$/);
+    expect(result.current.properties.at(-1)).toEqual({ id, ownerId: "landlord-1", ...input });
   });
 
-  it("updateProperty edits a seed listing in place without changing the list length", () => {
+  it("updateProperty edits in place and keeps the owner", () => {
     const { result } = renderHook(() => usePropertyCatalog());
     const target = seedProperties[0];
-
-    act(() => {
-      result.current.updateProperty(target.id, { ...target, price: 999999 });
-    });
+    act(() => result.current.updateProperty(target.id, { ...input, address: "Renamed" }));
 
     expect(result.current.properties).toHaveLength(seedProperties.length);
-    const updated = result.current.properties.find((p) => p.id === target.id);
-    expect(updated?.price).toBe(999999);
+    expect(result.current.properties[0]).toMatchObject({
+      id: target.id,
+      ownerId: target.ownerId,
+      address: "Renamed",
+    });
   });
 
-  it("updateProperty edits a newly created listing", () => {
+  it("deleteProperty removes a listing", () => {
     const { result } = renderHook(() => usePropertyCatalog());
-
-    let newId = "";
-    act(() => {
-      newId = result.current.addProperty(newListingInput);
-    });
-    act(() => {
-      result.current.updateProperty(newId, { ...newListingInput, address: "Updated Address" });
-    });
-
-    const updated = result.current.properties.find((p) => p.id === newId);
-    expect(updated?.address).toBe("Updated Address");
-  });
-
-  it("deleteProperty removes a seed listing", () => {
-    const { result } = renderHook(() => usePropertyCatalog());
-    const target = seedProperties[0];
-
-    act(() => {
-      result.current.deleteProperty(target.id);
-    });
-
-    expect(result.current.properties.find((p) => p.id === target.id)).toBeUndefined();
-    expect(result.current.properties).toHaveLength(seedProperties.length - 1);
-  });
-
-  it("deleteProperty removes a newly created listing", () => {
-    const { result } = renderHook(() => usePropertyCatalog());
-
-    let newId = "";
-    act(() => {
-      newId = result.current.addProperty(newListingInput);
-    });
-    act(() => {
-      result.current.deleteProperty(newId);
-    });
-
-    expect(result.current.properties.find((p) => p.id === newId)).toBeUndefined();
-    expect(result.current.properties).toHaveLength(seedProperties.length);
+    act(() => result.current.deleteProperty(seedProperties[0].id));
+    expect(result.current.properties.find((p) => p.id === seedProperties[0].id)).toBeUndefined();
   });
 
   it("persists additions, edits, and deletions across hook instances", () => {
-    const { result, unmount } = renderHook(() => usePropertyCatalog());
-    const editTarget = seedProperties[1];
-    const deleteTarget = seedProperties[2];
-
-    let newId = "";
+    const first = renderHook(() => usePropertyCatalog());
+    let id = "";
     act(() => {
-      newId = result.current.addProperty(newListingInput);
-      result.current.updateProperty(editTarget.id, { ...editTarget, address: "Edited Address" });
-      result.current.deleteProperty(deleteTarget.id);
+      id = first.result.current.addProperty("landlord-1", input);
+      first.result.current.updateProperty(seedProperties[1].id, { ...input, address: "Edited" });
+      first.result.current.deleteProperty(seedProperties[2].id);
     });
-    unmount();
+    first.unmount();
 
-    const { result: second } = renderHook(() => usePropertyCatalog());
-    expect(second.current.properties.find((p) => p.id === newId)?.address).toBe(newListingInput.address);
-    expect(second.current.properties.find((p) => p.id === editTarget.id)?.address).toBe(
-      "Edited Address",
-    );
-    expect(second.current.properties.find((p) => p.id === deleteTarget.id)).toBeUndefined();
+    const { result } = renderHook(() => usePropertyCatalog());
+    expect(result.current.properties.find((p) => p.id === id)).toBeDefined();
+    expect(result.current.properties.find((p) => p.id === seedProperties[1].id)?.address).toBe("Edited");
+    expect(result.current.properties.find((p) => p.id === seedProperties[2].id)).toBeUndefined();
   });
 });

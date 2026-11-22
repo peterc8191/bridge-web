@@ -15,6 +15,8 @@ const property: Property = {
   sqft: 1650,
   description: "A house.",
   images: ["https://example.com/1.jpg"],
+  ownerId: "u-landlord",
+  tenantEmails: [],
 };
 
 function expandForm() {

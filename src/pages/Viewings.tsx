@@ -1,31 +1,19 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import type { Property } from "../types/property";
 import type { ViewingRequest } from "../types/viewing";
-import type { AuthUser } from "../types/auth";
+import { ViewingStatusBadge } from "../components/ViewingStatusBadge";
+import { useAppData } from "../context/appDataContext";
+import { canCancelViewing, canRespondToViewing } from "../lib/permissions";
 import { splitViewingsByTime } from "../utils/sortViewings";
 import { formatViewingDate, formatViewingTime } from "../utils/formatViewingTime";
 import "./Viewings.css";
 
-interface ViewingsProps {
-  properties: Property[];
-  viewings: ViewingRequest[];
-  currentUser: AuthUser | null;
-  onConfirmViewing: (viewingId: string) => void;
-}
-
-function ViewingRow({
-  viewing,
-  properties,
-  canConfirm,
-  onConfirmViewing,
-}: {
-  viewing: ViewingRequest;
-  properties: Property[];
-  canConfirm: boolean;
-  onConfirmViewing: (viewingId: string) => void;
-}) {
-  const property = properties.find((candidate) => candidate.id === viewing.propertyId);
+function ViewingRow({ viewing, isUpcoming }: { viewing: ViewingRequest; isUpcoming: boolean }) {
+  const { propertyById, currentUser, respondToViewing, cancelViewing } = useAppData();
+  const property = propertyById.get(viewing.propertyId);
+  const isMine = viewing.requesterId === currentUser?.id;
+  const canRespond = canRespondToViewing(currentUser, viewing, propertyById);
+  const canCancel = isUpcoming && canCancelViewing(currentUser, viewing);
 
   return (
     <li className="viewings-page__row">
@@ -37,40 +25,63 @@ function ViewingRow({
           <span className="viewings-page__datetime">
             {formatViewingDate(viewing.date)} at {formatViewingTime(viewing.time)}
           </span>
+          {!isMine && (
+            <span className="viewings-page__requester">Requested by {viewing.requesterEmail}</span>
+          )}
           {viewing.note && <span className="viewings-page__note">{viewing.note}</span>}
         </div>
-        <span
-          className={
-            viewing.confirmed
-              ? "viewings-page__status viewings-page__status--confirmed"
-              : "viewings-page__status viewings-page__status--pending"
-          }
-        >
-          {viewing.confirmed ? "Confirmed" : "Pending"}
-        </span>
+        <ViewingStatusBadge status={viewing.status} />
       </Link>
-      {canConfirm && !viewing.confirmed && (
-        <button
-          type="button"
-          className="viewings-page__confirm-btn"
-          onClick={() => onConfirmViewing(viewing.id)}
-        >
-          Confirm viewing
-        </button>
+      {(canRespond || canCancel) && (
+        <div className="viewings-page__actions">
+          {canRespond && (
+            <>
+              <button
+                type="button"
+                className="viewings-page__confirm-btn"
+                onClick={() => respondToViewing(viewing.id, "confirmed")}
+              >
+                Confirm viewing
+              </button>
+              <button
+                type="button"
+                className="viewings-page__decline-btn"
+                onClick={() => respondToViewing(viewing.id, "declined")}
+              >
+                Decline
+              </button>
+            </>
+          )}
+          {canCancel && (
+            <button
+              type="button"
+              className="viewings-page__decline-btn"
+              onClick={() => {
+                if (window.confirm("Cancel this viewing request?")) cancelViewing(viewing.id);
+              }}
+            >
+              Cancel request
+            </button>
+          )}
+        </div>
       )}
     </li>
   );
 }
 
-export function Viewings({ properties, viewings, currentUser, onConfirmViewing }: ViewingsProps) {
+export function Viewings() {
+  const { viewings, currentUser } = useAppData();
   const { upcoming, past } = useMemo(() => splitViewingsByTime(viewings), [viewings]);
-  const canConfirm = currentUser?.role === "landlord";
 
   if (viewings.length === 0) {
     return (
       <main className="viewings-page viewings-page--empty" data-testid="viewings-empty">
         <p>No viewings requested yet.</p>
-        <p className="viewings-page__hint">Arrange a viewing from any saved property's page.</p>
+        <p className="viewings-page__hint">
+          {currentUser?.role === "landlord"
+            ? "Requests on your listings will appear here."
+            : "Arrange a viewing from any property's page."}
+        </p>
       </main>
     );
   }
@@ -84,13 +95,7 @@ export function Viewings({ properties, viewings, currentUser, onConfirmViewing }
         ) : (
           <ul className="viewings-page__list" data-testid="upcoming-viewings">
             {upcoming.map((viewing) => (
-              <ViewingRow
-                key={viewing.id}
-                viewing={viewing}
-                properties={properties}
-                canConfirm={canConfirm}
-                onConfirmViewing={onConfirmViewing}
-              />
+              <ViewingRow key={viewing.id} viewing={viewing} isUpcoming />
             ))}
           </ul>
         )}
@@ -103,13 +108,7 @@ export function Viewings({ properties, viewings, currentUser, onConfirmViewing }
         ) : (
           <ul className="viewings-page__list" data-testid="past-viewings">
             {past.map((viewing) => (
-              <ViewingRow
-                key={viewing.id}
-                viewing={viewing}
-                properties={properties}
-                canConfirm={canConfirm}
-                onConfirmViewing={onConfirmViewing}
-              />
+              <ViewingRow key={viewing.id} viewing={viewing} isUpcoming={false} />
             ))}
           </ul>
         )}

@@ -67,4 +67,16 @@ describe("SwipeDeck", () => {
       { timeout: 2000 },
     );
   });
+
+  it("offers undo on the empty state after the last swipe", async () => {
+    const onUndo = vi.fn();
+    render(<SwipeDeck deck={[]} onDecide={vi.fn()} onUndo={onUndo} canUndo />);
+    await userEvent.click(screen.getByRole("button", { name: /undo last swipe/i }));
+    expect(onUndo).toHaveBeenCalled();
+  });
+
+  it("hides undo on the empty state when there's nothing to undo", () => {
+    render(<SwipeDeck deck={[]} onDecide={vi.fn()} onUndo={vi.fn()} canUndo={false} />);
+    expect(screen.queryByRole("button", { name: /undo/i })).not.toBeInTheDocument();
+  });
 });

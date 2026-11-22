@@ -10,10 +10,12 @@ const VISIBLE_CARDS = 3;
 interface SwipeDeckProps {
   deck: Property[];
   onDecide: (property: Property, direction: SwipeDirection) => void;
+  onUndo?: () => void;
+  canUndo?: boolean;
   reduceMotion?: boolean;
 }
 
-export function SwipeDeck({ deck, onDecide, reduceMotion = false }: SwipeDeckProps) {
+export function SwipeDeck({ deck, onDecide, onUndo, canUndo = false, reduceMotion = false }: SwipeDeckProps) {
   const topCardRef = useRef<PropertyCardHandle>(null);
 
   const visible = deck.slice(0, VISIBLE_CARDS);
@@ -29,6 +31,11 @@ export function SwipeDeck({ deck, onDecide, reduceMotion = false }: SwipeDeckPro
       <div className="swipe-deck swipe-deck--empty" data-testid="deck-empty">
         <p>You've been through every listing.</p>
         <p className="swipe-deck__empty-hint">Check your Saved list for the ones you liked.</p>
+        {onUndo && canUndo && (
+          <button type="button" className="swipe-deck__undo" onClick={onUndo}>
+            Undo last swipe
+          </button>
+        )}
       </div>
     );
   }
@@ -63,7 +70,12 @@ export function SwipeDeck({ deck, onDecide, reduceMotion = false }: SwipeDeckPro
             );
           })}
       </div>
-      <ActionButtons onPass={() => handleButtonSwipe("left")} onLike={() => handleButtonSwipe("right")} />
+      <ActionButtons
+        onPass={() => handleButtonSwipe("left")}
+        onLike={() => handleButtonSwipe("right")}
+        onUndo={onUndo}
+        canUndo={canUndo}
+      />
     </div>
   );
 }

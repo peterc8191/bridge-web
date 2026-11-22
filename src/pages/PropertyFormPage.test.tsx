@@ -1,123 +1,73 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { PropertyFormPage } from "./PropertyFormPage";
-import { properties } from "../data/properties";
-import type { AuthUser } from "../types/auth";
-import type { PropertyInput } from "../types/property";
+import { renderWithAppData } from "../test/appData";
+import { landlord, makeProperty, otherLandlord } from "../test/fixtures";
+import type { AppData } from "../context/appDataContext";
 
-const landlord: AuthUser = { id: "u1", email: "landlorda@abc.com", role: "landlord" };
-const genericUser: AuthUser = { id: "u2", email: "usera@abc.com", role: "user" };
+const mine = makeProperty({ id: "p1", ownerId: landlord.id });
+const theirs = makeProperty({ id: "p2", ownerId: otherLandlord.id, address: "Someone else's" });
 
-function renderAt(
-  path: string,
-  currentUser: AuthUser | null,
-  overrides: {
-    onAddProperty?: (input: PropertyInput) => string;
-    onUpdateProperty?: (id: string, input: PropertyInput) => void;
-  } = {},
-) {
-  const onAddProperty = overrides.onAddProperty ?? vi.fn().mockReturnValue("property-new-1");
-  const onUpdateProperty = overrides.onUpdateProperty ?? vi.fn();
+function renderPage(route: string, data: Partial<AppData> = {}) {
+  const path = route.endsWith("/new") ? "/manage-listings/new" : "/manage-listings/:id/edit";
+  return renderWithAppData(<PropertyFormPage />, {
+    path,
+    route,
+    data: { currentUser: landlord, properties: [mine, theirs], myListings: [mine], ...data },
+  });
+}
 
-  return {
-    onAddProperty,
-    onUpdateProperty,
-    ...render(
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route
-            path="/manage-listings/new"
-            element={
-              <PropertyFormPage
-                currentUser={currentUser}
-                properties={properties}
-                onAddProperty={onAddProperty}
-                onUpdateProperty={onUpdateProperty}
-              />
-            }
-          />
-          <Route
-            path="/manage-listings/:id/edit"
-            element={
-              <PropertyFormPage
-                currentUser={currentUser}
-                properties={properties}
-                onAddProperty={onAddProperty}
-                onUpdateProperty={onUpdateProperty}
-              />
-            }
-          />
-          <Route path="/manage-listings" element={<div>Manage listings page</div>} />
-          <Route path="/property/:id" element={<div>Property detail page</div>} />
-          <Route path="/" element={<div>Home page</div>} />
-        </Routes>
-      </MemoryRouter>,
-    ),
-  };
+async function fillNew() {
+  await userEvent.type(screen.getByLabelText(/address/i), "9 New Build Ave");
+  await userEvent.type(screen.getByLabelText(/city/i), "Denver, CO");
+  await userEvent.type(screen.getByLabelText(/price/i), "425500");
+  await userEvent.type(screen.getByLabelText(/sqft/i), "1100");
+  await userEvent.type(screen.getByLabelText(/beds/i), "2");
+  await userEvent.type(screen.getByLabelText(/baths/i), "2");
+  await userEvent.type(screen.getByLabelText(/description/i), "Freshly listed.");
+  await userEvent.type(screen.getByLabelText(/photo urls/i), "https://example.com/new.jpg");
 }
 
 describe("PropertyFormPage", () => {
-  it("redirects home for a non-landlord", () => {
-    renderAt("/manage-listings/new", genericUser);
-    expect(screen.getByText("Home page")).toBeInTheDocument();
-  });
-
-  it("redirects home when logged out", () => {
-    renderAt("/manage-listings/new", null);
-    expect(screen.getByText("Home page")).toBeInTheDocument();
-  });
-
-  it("shows a create form with no pre-filled values for /manage-listings/new", () => {
-    renderAt("/manage-listings/new", landlord);
+  it("shows an empty create form for /manage-listings/new", () => {
+    renderPage("/manage-listings/new");
     expect(screen.getByRole("heading", { name: /add new listing/i })).toBeInTheDocument();
     expect(screen.getByLabelText(/address/i)).toHaveValue("");
-    expect(screen.getByRole("button", { name: /create listing/i })).toBeInTheDocument();
   });
 
-  it("shows an edit form pre-filled with the existing listing", () => {
-    const target = properties[0];
-    renderAt(`/manage-listings/${target.id}/edit`, landlord);
+  it("shows an edit form pre-filled with the landlord's own listing", () => {
+    renderPage("/manage-listings/p1/edit");
     expect(screen.getByRole("heading", { name: /edit listing/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/address/i)).toHaveValue(target.address);
-    expect(screen.getByRole("button", { name: /save changes/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/address/i)).toHaveValue(mine.address);
   });
 
-  it("redirects to Manage Listings for an edit route with an unknown id", () => {
-    renderAt("/manage-listings/does-not-exist/edit", landlord);
-    expect(screen.getByText("Manage listings page")).toBeInTheDocument();
+  it("redirects to Manage Listings for an unknown id", () => {
+    renderPage("/manage-listings/nope/edit");
+    expect(screen.getByTestId("location")).toHaveTextContent("/manage-listings");
   });
 
-  it("calls onAddProperty and navigates to the new property's detail page on create", async () => {
-    const onAddProperty = vi.fn().mockReturnValue("property-new-1");
-    renderAt("/manage-listings/new", landlord, { onAddProperty });
+  it("redirects to Manage Listings when editing another landlord's listing", () => {
+    renderPage("/manage-listings/p2/edit");
+    expect(screen.getByTestId("location")).toHaveTextContent("/manage-listings");
+  });
 
-    await userEvent.type(screen.getByLabelText(/address/i), "9 New Build Ave");
-    await userEvent.type(screen.getByLabelText(/city/i), "Denver, CO");
-    await userEvent.type(screen.getByLabelText(/price/i), "425000");
-    await userEvent.type(screen.getByLabelText(/sqft/i), "1100");
-    await userEvent.type(screen.getByLabelText(/beds/i), "2");
-    await userEvent.type(screen.getByLabelText(/baths/i), "2");
-    await userEvent.type(screen.getByLabelText(/description/i), "Freshly listed condo.");
-    await userEvent.type(screen.getByLabelText(/photo urls/i), "https://example.com/new.jpg");
+  it("creates a listing (any price, not just round thousands) and opens its page", async () => {
+    const { data } = renderPage("/manage-listings/new");
+    await fillNew();
     await userEvent.click(screen.getByRole("button", { name: /create listing/i }));
 
-    expect(onAddProperty).toHaveBeenCalled();
-    expect(await screen.findByText("Property detail page")).toBeInTheDocument();
+    expect(data.addProperty).toHaveBeenCalledWith(expect.objectContaining({ address: "9 New Build Ave", price: 425500 }));
+    expect(await screen.findByTestId("location")).toHaveTextContent("/property/new-id");
   });
 
-  it("calls onUpdateProperty and navigates to the property's detail page on edit", async () => {
-    const target = properties[0];
-    const onUpdateProperty = vi.fn();
-    renderAt(`/manage-listings/${target.id}/edit`, landlord, { onUpdateProperty });
-
+  it("saves edits and opens the listing's page", async () => {
+    const { data } = renderPage("/manage-listings/p1/edit");
+    await userEvent.clear(screen.getByLabelText(/address/i));
+    await userEvent.type(screen.getByLabelText(/address/i), "Renamed");
     await userEvent.click(screen.getByRole("button", { name: /save changes/i }));
 
-    expect(onUpdateProperty).toHaveBeenCalledWith(
-      target.id,
-      expect.objectContaining({ address: target.address }),
-    );
-    expect(await screen.findByText("Property detail page")).toBeInTheDocument();
+    expect(data.updateProperty).toHaveBeenCalledWith("p1", expect.objectContaining({ address: "Renamed" }));
+    expect(await screen.findByTestId("location")).toHaveTextContent("/property/p1");
   });
 });

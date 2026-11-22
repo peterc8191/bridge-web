@@ -1,5 +1,16 @@
 # ADR 0001: Backend to store and process existing app functionality
 
+> **Update (2026-11-22):** The frontend has moved closer to this design while still running client-only. The Context section below describes the app as it was when this ADR was written.
+>
+> - Every record now carries its owner or actor (`Property.ownerId`, `Issue.reporterId`, `ViewingRequest.requesterId`, `Tender.traderId`).
+> - IDs are UUIDs.
+> - Data is scoped to the signed-in user.
+> - Viewings have a `status` (`pending`/`confirmed`/`declined`/`cancelled`) instead of `confirmed: boolean`.
+> - Who-can-do-what rules live in `src/lib/permissions.ts`, ready to be enforced server-side.
+> - All storage access goes through `src/lib/storage.ts`, and pages read state from `AppDataProvider`, so the migration below means swapping the store hooks' reads and writes for API calls.
+>
+> See [docs/features.md](../features.md) for the current behaviour. The data model below also needs `Property.ownerId`, `Property.tenantEmails` (or a `Tenancy` table), and the `Tender` table.
+
 ## Context
 
 bridge-web is currently a fully client-side React SPA (Vite + TypeScript). Every piece of state lives in the browser:

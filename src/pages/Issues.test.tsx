@@ -1,171 +1,78 @@
-import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, expect, it } from "vitest";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Issues } from "./Issues";
-import type { Issue, IssueStatus, NewIssueInput } from "../types/issue";
-import type { Property } from "../types/property";
-import type { AuthUser } from "../types/auth";
-import type { NewTenderInput, Tender } from "../types/tender";
-import type { TraderProfile } from "../types/traderProfile";
+import { renderWithAppData } from "../test/appData";
+import { landlord, makeIssue, makeProperty, tenant, trader } from "../test/fixtures";
 
-const savedProperty: Property = {
-  id: "p1",
-  address: "142 Maple Street",
-  city: "Portland, OR",
-  price: 549000,
-  listingType: "sale",
-  beds: 3,
-  baths: 2,
-  sqft: 1650,
-  description: "A house.",
-  images: ["https://example.com/1.jpg"],
-};
-
-const landlord: AuthUser = { id: "u1", email: "landlorda@abc.com", role: "landlord" };
-const trader: AuthUser = { id: "u3", email: "tradea@abc.com", role: "tradesperson" };
-const traderProfile: TraderProfile = { services: ["Plumbing"], areas: ["Portland, OR"], bio: "" };
-
-function makeEmptyTenderProps() {
-  return {
-    tenders: [] as Tender[],
-    traderProfile: { services: [], areas: [], bio: "" } as TraderProfile,
-    onAddTender: vi.fn(),
-    onAcceptTender: vi.fn(),
-  };
-}
-
-// Mirrors how App.tsx wires useIssues'/useTenders' state through to the
-// Issues page, with a role-switch button so a test can act as the trader and
-// then the landlord against the *same* underlying state (like two people
-// using the shared app, not two isolated renders).
-function StatefulIssues({ saved }: { saved: Property[] }) {
-  const [issues, setIssues] = useState<Issue[]>([]);
-  const [tenders, setTenders] = useState<Tender[]>([]);
-  const [currentUser, setCurrentUser] = useState<AuthUser>(trader);
-
-  const addIssue = (input: NewIssueInput) => {
-    setIssues((prev) => [
-      ...prev,
-      { ...input, id: `issue-${prev.length}`, status: "open", createdAt: new Date().toISOString() },
-    ]);
-  };
-  const updateIssueStatus = (issueId: string, status: IssueStatus) => {
-    setIssues((prev) => prev.map((issue) => (issue.id === issueId ? { ...issue, status } : issue)));
-  };
-  const addTender = (input: NewTenderInput) => {
-    setTenders((prev) => [
-      ...prev,
-      { ...input, id: `tender-${prev.length}`, status: "pending", createdAt: new Date().toISOString() },
-    ]);
-  };
-  const acceptTender = (tenderId: string) => {
-    setTenders((prev) => prev.map((t) => (t.id === tenderId ? { ...t, status: "accepted" } : t)));
-  };
-
-  return (
-    <>
-      <button type="button" onClick={() => setCurrentUser(landlord)}>
-        Switch to landlord
-      </button>
-      <Issues
-        saved={saved}
-        properties={saved}
-        issues={issues}
-        onAddIssue={addIssue}
-        currentUser={currentUser}
-        onUpdateIssueStatus={updateIssueStatus}
-        tenders={tenders}
-        traderProfile={traderProfile}
-        onAddTender={addTender}
-        onAcceptTender={acceptTender}
-      />
-    </>
-  );
-}
+const rental = makeProperty({ id: "p1", listingType: "rent", tenantEmails: [tenant.email] });
 
 describe("Issues page", () => {
-  it("shows the empty-state hint when nothing is saved and no issues exist", () => {
-    render(
-      <Issues
-        saved={[]}
-        properties={[]}
-        issues={[]}
-        onAddIssue={vi.fn()}
-        currentUser={null}
-        onUpdateIssueStatus={vi.fn()}
-        {...makeEmptyTenderProps()}
-      />,
-    );
-    expect(screen.getByTestId("issue-form-empty")).toBeInTheDocument();
-    expect(screen.getByTestId("issue-list-empty")).toBeInTheDocument();
+  it("tells a tenant with no rentals how to get set up", () => {
+    renderWithAppData(<Issues />, { data: { currentUser: tenant } });
+    expect(screen.getByTestId("issue-form-empty")).toHaveTextContent(/properties you rent/i);
   });
 
-  it("reporting an issue through the form does not touch tendering", async () => {
-    const tenderProps = makeEmptyTenderProps();
-    render(
-      <Issues
-        saved={[savedProperty]}
-        properties={[savedProperty]}
-        issues={[]}
-        onAddIssue={vi.fn()}
-        currentUser={null}
-        onUpdateIssueStatus={vi.fn()}
-        {...tenderProps}
-      />,
-    );
-    await userEvent.click(screen.getByRole("button", { name: /report an issue/i }));
-    await userEvent.selectOptions(screen.getByLabelText(/property/i), savedProperty.id);
-    await userEvent.type(screen.getByLabelText(/title/i), "Cracked window");
-    await userEvent.type(screen.getByLabelText(/description/i), "Hairline crack.");
-    await userEvent.click(screen.getByRole("button", { name: /^report issue$/i }));
+  it("lets a tenant report an issue on a property they rent", async () => {
+    const { data } = renderWithAppData(<Issues />, {
+      data: { currentUser: tenant, properties: [rental], reportableProperties: [rental] },
+    });
 
-    expect(tenderProps.onAddTender).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: /report an issue/i }));
+    await userEvent.selectOptions(screen.getByLabelText(/property/i), "p1");
+    await userEvent.type(screen.getByLabelText(/title/i), "No hot water");
+    await userEvent.type(screen.getByLabelText(/description/i), "Since Monday.");
+    await userEvent.click(screen.getByRole("button", { name: /report issue/i }));
+
+    expect(data.addIssue).toHaveBeenCalledWith({
+      propertyId: "p1",
+      title: "No hot water",
+      description: "Since Monday.",
+    });
   });
 
-  it("supports the full flow: report an issue, tender a quote as a trader, then accept it as a landlord", async () => {
-    render(<StatefulIssues saved={[savedProperty]} />);
-
-    // Currently viewing as the trader - report the issue first (any signed-in
-    // user can) so there's something to tender against.
-    await userEvent.click(screen.getByRole("button", { name: /report an issue/i }));
-    await userEvent.selectOptions(screen.getByLabelText(/property/i), savedProperty.id);
-    await userEvent.type(screen.getByLabelText(/title/i), "Cracked window");
-    await userEvent.type(screen.getByLabelText(/description/i), "Hairline crack.");
-    await userEvent.click(screen.getByRole("button", { name: /^report issue$/i }));
-
-    const list = screen.getByTestId("issue-list");
-    expect(within(list).getByText("Cracked window")).toBeInTheDocument();
-
-    // As the trader, tender a quote.
-    await userEvent.click(within(list).getByRole("button", { name: /tenders/i }));
-    await userEvent.type(within(list).getByLabelText(/quote amount/i), "150");
-    await userEvent.type(within(list).getByLabelText(/message/i), "Can fix tomorrow.");
-    await userEvent.click(within(list).getByRole("button", { name: /^tender a quote$/i }));
-
-    expect(within(list).getByText("tradea@abc.com")).toBeInTheDocument();
-    expect(within(list).getByText("Pending")).toBeInTheDocument();
-
-    // Switch to the landlord and accept the tender.
-    await userEvent.click(screen.getByRole("button", { name: /switch to landlord/i }));
-    await userEvent.click(within(list).getByRole("button", { name: /accept tender/i }));
-
-    expect(within(list).getByText("Accepted")).toBeInTheDocument();
+  it("hides the report form from a landlord who doesn't rent anywhere", () => {
+    renderWithAppData(<Issues />, { data: { currentUser: landlord } });
+    expect(screen.queryByTestId("issue-form-empty")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("issue-form")).not.toBeInTheDocument();
+    expect(screen.getByText(/issues reported on your listings/i)).toBeInTheDocument();
   });
 
-  it("lets a landlord change an issue's status independent of tendering", async () => {
-    render(<StatefulIssues saved={[savedProperty]} />);
+  it("lets the owning landlord change an issue's status", async () => {
+    const { data } = renderWithAppData(<Issues />, {
+      data: { currentUser: landlord, properties: [rental], issues: [makeIssue({ id: "i1" })] },
+    });
+    await userEvent.selectOptions(screen.getByLabelText(/status for/i), "in-progress");
+    expect(data.updateIssueStatus).toHaveBeenCalledWith("i1", "in-progress");
+  });
 
-    await userEvent.click(screen.getByRole("button", { name: /report an issue/i }));
-    await userEvent.selectOptions(screen.getByLabelText(/property/i), savedProperty.id);
-    await userEvent.type(screen.getByLabelText(/title/i), "Cracked window");
-    await userEvent.type(screen.getByLabelText(/description/i), "Hairline crack.");
-    await userEvent.click(screen.getByRole("button", { name: /^report issue$/i }));
+  it("tells a trader which areas they're seeing issues for", () => {
+    renderWithAppData(<Issues />, {
+      data: { currentUser: trader, traderProfile: { services: [], areas: ["Portland, OR"], bio: "" } },
+    });
+    expect(screen.getByTestId("trader-areas-note")).toHaveTextContent("Portland, OR");
+  });
 
-    await userEvent.click(screen.getByRole("button", { name: /switch to landlord/i }));
+  it("points a trader with no areas to their profile", () => {
+    renderWithAppData(<Issues />, { data: { currentUser: trader } });
+    expect(screen.getByRole("link", { name: /trader profile/i })).toHaveAttribute("href", "/trader-profile");
+  });
 
-    const list = screen.getByTestId("issue-list");
-    await userEvent.selectOptions(within(list).getByRole("combobox"), "resolved");
-    expect(within(list).getByRole("combobox")).toHaveValue("resolved");
+  it("lets a trader quote on an issue in their area", async () => {
+    const { data } = renderWithAppData(<Issues />, {
+      data: {
+        currentUser: trader,
+        properties: [rental],
+        issues: [makeIssue({ id: "i1", propertyId: "p1" })],
+        traderProfile: { services: ["Plumbing"], areas: ["Portland, OR"], bio: "" },
+      },
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /your quote/i }));
+    await userEvent.type(screen.getByLabelText(/quote amount/i), "200");
+    await userEvent.type(screen.getByLabelText(/message/i), "Tomorrow AM");
+    await userEvent.click(screen.getByRole("button", { name: /tender a quote/i }));
+
+    expect(data.addTender).toHaveBeenCalledWith({ issueId: "i1", amount: 200, message: "Tomorrow AM" });
   });
 });

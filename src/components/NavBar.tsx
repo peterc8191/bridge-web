@@ -1,16 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import shortLogo from "../assets/short-logo.png";
-import type { AuthUser } from "../types/auth";
+import { useAppData } from "../context/appDataContext";
+import { navCounts } from "../lib/navCounts";
 import "./NavBar.css";
-
-interface NavBarProps {
-  savedCount: number;
-  issueCount: number;
-  viewingCount: number;
-  currentUser: AuthUser | null;
-  onLogout: () => void;
-}
 
 type MoreEntry =
   | { kind: "link"; path: string; label: string }
@@ -19,7 +12,11 @@ type MoreEntry =
 const linkClassName = ({ isActive }: { isActive: boolean }) =>
   isActive ? "nav-bar__link nav-bar__link--active" : "nav-bar__link";
 
-export function NavBar({ savedCount, issueCount, viewingCount, currentUser, onLogout }: NavBarProps) {
+export function NavBar() {
+  const data = useAppData();
+  const { currentUser, logout: onLogout } = data;
+  const savedCount = data.saved.length;
+  const { viewings: viewingCount, issues: issueCount } = navCounts(data);
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);

@@ -1,20 +1,19 @@
 import { Link } from "react-router-dom";
-import type { Property } from "../types/property";
 import { ListingTypeBadge } from "../components/ListingTypeBadge";
+import { useAppData } from "../context/appDataContext";
 import { formatPrice } from "../utils/formatPrice";
+import { photoBackground } from "../utils/photo";
 import "./Saved.css";
 
-interface SavedProps {
-  saved: Property[];
-  onRemove: (propertyId: string) => void;
-}
+export function Saved() {
+  const { saved, removeSaved: onRemove, currentUser } = useAppData();
 
-export function Saved({ saved, onRemove }: SavedProps) {
   if (saved.length === 0) {
     return (
       <main className="saved-page saved-page--empty">
         <p>No saved properties yet.</p>
         <p className="saved-page__hint">Swipe right on a listing in Discover to save it here.</p>
+        {!currentUser && <GuestNote />}
       </main>
     );
   }
@@ -27,7 +26,7 @@ export function Saved({ saved, onRemove }: SavedProps) {
             <Link to={`/property/${property.id}`} className="saved-list__link">
               <div
                 className="saved-list__thumb"
-                style={{ backgroundImage: `url(${property.images[0]})` }}
+                style={{ backgroundImage: photoBackground(property.images[0]) }}
               />
               <div className="saved-list__body">
                 <h3>{property.address}</h3>
@@ -54,6 +53,16 @@ export function Saved({ saved, onRemove }: SavedProps) {
           </li>
         ))}
       </ul>
+      {!currentUser && <GuestNote />}
     </main>
+  );
+}
+
+function GuestNote() {
+  return (
+    <p className="saved-page__hint" data-testid="guest-note">
+      You're browsing as a guest - <Link to="/login">log in</Link> to keep a separate saved list per
+      account.
+    </p>
   );
 }

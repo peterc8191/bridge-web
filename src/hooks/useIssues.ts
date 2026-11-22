@@ -1,92 +1,46 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback } from "react";
 import { seedIssues } from "../data/issues";
+import { newId, storageKey } from "../lib/storage";
+import type { AuthUser } from "../types/auth";
 import type { Issue, IssueStatus, NewIssueInput } from "../types/issue";
+import { useStoredState } from "./useStoredState";
 
-const ADDED_ISSUES_KEY = "bridge:added-issues";
-const STATUS_OVERRIDES_KEY = "bridge:issue-status-overrides";
+export const ISSUES_KEY = storageKey("issues");
 
-let issueSequence = 0;
-function generateIssueId(): string {
-  issueSequence += 1;
-  return `issue-${issueSequence}`;
-}
-
-function readAddedIssues(): Issue[] {
-  try {
-    const raw = localStorage.getItem(ADDED_ISSUES_KEY);
-    return raw ? (JSON.parse(raw) as Issue[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeAddedIssues(issues: Issue[]) {
-  try {
-    localStorage.setItem(ADDED_ISSUES_KEY, JSON.stringify(issues));
-  } catch {
-    // localStorage unavailable (e.g. private mode) - additions just won't persist.
-  }
-}
-
-function readStatusOverrides(): Record<string, IssueStatus> {
-  try {
-    const raw = localStorage.getItem(STATUS_OVERRIDES_KEY);
-    return raw ? (JSON.parse(raw) as Record<string, IssueStatus>) : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeStatusOverrides(overrides: Record<string, IssueStatus>) {
-  try {
-    localStorage.setItem(STATUS_OVERRIDES_KEY, JSON.stringify(overrides));
-  } catch {
-    // localStorage unavailable - status changes just won't persist.
-  }
-}
-
+/** Raw issue store. Who may see or change what is decided in AppDataProvider. */
 export function useIssues() {
-  const [addedIssues, setAddedIssues] = useState<Issue[]>(() => readAddedIssues());
-  const [statusOverrides, setStatusOverrides] = useState<Record<string, IssueStatus>>(() =>
-    readStatusOverrides(),
+  const [issues, setIssues] = useStoredState<Issue[]>(ISSUES_KEY, seedIssues);
+
+  const addIssue = useCallback(
+    (reporter: AuthUser, input: NewIssueInput) => {
+      const issue: Issue = {
+        id: newId("issue"),
+        propertyId: input.propertyId,
+        reporterId: reporter.id,
+        reporterEmail: reporter.email,
+        title: input.title,
+        description: input.description,
+        status: "open",
+        createdAt: new Date().toISOString(),
+      };
+      setIssues((prev) => [...prev, issue]);
+    },
+    [setIssues],
   );
 
-  const addIssue = useCallback((input: NewIssueInput) => {
-    const issue: Issue = {
-      id: generateIssueId(),
-      propertyId: input.propertyId,
-      title: input.title,
-      description: input.description,
-      status: "open",
-      createdAt: new Date().toISOString(),
-    };
-    setAddedIssues((prev) => {
-      const next = [...prev, issue];
-      writeAddedIssues(next);
-      return next;
-    });
-  }, []);
-
-  const clearAddedIssues = useCallback(() => {
-    setAddedIssues([]);
-    writeAddedIssues([]);
-  }, []);
-
-  const updateIssueStatus = useCallback((issueId: string, status: IssueStatus) => {
-    setStatusOverrides((prev) => {
-      const next = { ...prev, [issueId]: status };
-      writeStatusOverrides(next);
-      return next;
-    });
-  }, []);
-
-  const issues = useMemo(
-    () =>
-      [...seedIssues, ...addedIssues].map((issue) =>
-        statusOverrides[issue.id] ? { ...issue, status: statusOverrides[issue.id] } : issue,
-      ),
-    [addedIssues, statusOverrides],
+  const updateIssueStatus = useCallback(
+    (issueId: string, status: IssueStatus) => {
+      setIssues((prev) => prev.map((issue) => (issue.id === issueId ? { ...issue, status } : issue)));
+    },
+    [setIssues],
   );
 
-  return { issues, addIssue, clearAddedIssues, updateIssueStatus };
+  const deleteIssuesByReporter = useCallback(
+    (reporterId: string) => {
+      setIssues((prev) => prev.filter((issue) => issue.reporterId !== reporterId));
+    },
+    [setIssues],
+  );
+
+  return { issues, addIssue, updateIssueStatus, deleteIssuesByReporter };
 }

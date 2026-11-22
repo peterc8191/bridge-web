@@ -1,49 +1,53 @@
-import type { Property } from "../types/property";
-import type { Issue, IssueStatus, NewIssueInput } from "../types/issue";
-import type { AuthUser } from "../types/auth";
-import type { NewTenderInput, Tender } from "../types/tender";
-import type { TraderProfile } from "../types/traderProfile";
+import { Link } from "react-router-dom";
 import { IssueForm } from "../components/IssueForm";
 import { IssueList } from "../components/IssueList";
+import { useAppData } from "../context/appDataContext";
 import "./Issues.css";
 
-interface IssuesProps {
-  saved: Property[];
-  properties: Property[];
-  issues: Issue[];
-  onAddIssue: (input: NewIssueInput) => void;
-  currentUser: AuthUser | null;
-  onUpdateIssueStatus: (issueId: string, status: IssueStatus) => void;
-  tenders: Tender[];
-  traderProfile: TraderProfile;
-  onAddTender: (input: NewTenderInput) => void;
-  onAcceptTender: (tenderId: string) => void;
-}
+export function Issues() {
+  const {
+    currentUser,
+    issues,
+    reportableProperties,
+    propertyById,
+    addIssue,
+    updateIssueStatus,
+    tenders,
+    traderProfile,
+    addTender,
+    acceptTender,
+  } = useAppData();
 
-export function Issues({
-  saved,
-  properties,
-  issues,
-  onAddIssue,
-  currentUser,
-  onUpdateIssueStatus,
-  tenders,
-  traderProfile,
-  onAddTender,
-  onAcceptTender,
-}: IssuesProps) {
+  // Landlords and traders only see the report form if they also rent somewhere.
+  const showForm = currentUser?.role === "user" || reportableProperties.length > 0;
+
   return (
     <main className="issues-page">
-      <IssueForm properties={saved} onSubmit={onAddIssue} />
+      {currentUser?.role === "landlord" && (
+        <p className="issues-page__intro">Issues reported on your listings.</p>
+      )}
+      {currentUser?.role === "tradesperson" && (
+        <p className="issues-page__intro" data-testid="trader-areas-note">
+          {traderProfile.areas.length > 0 ? (
+            <>Showing open issues in your service areas: {traderProfile.areas.join(", ")}.</>
+          ) : (
+            <>
+              Add your service areas to your <Link to="/trader-profile">trader profile</Link> to see
+              issues you can quote on.
+            </>
+          )}
+        </p>
+      )}
+      {showForm && <IssueForm properties={reportableProperties} onSubmit={addIssue} />}
       <IssueList
         issues={issues}
-        properties={properties}
+        propertyById={propertyById}
         currentUser={currentUser}
-        onUpdateStatus={onUpdateIssueStatus}
+        onUpdateStatus={updateIssueStatus}
         tenders={tenders}
         traderProfile={traderProfile}
-        onAddTender={onAddTender}
-        onAcceptTender={onAcceptTender}
+        onAddTender={addTender}
+        onAcceptTender={acceptTender}
       />
     </main>
   );

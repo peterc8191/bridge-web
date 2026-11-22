@@ -6,6 +6,12 @@ import { PropertyCard, type PropertyCardHandle } from "./PropertyCard";
 import type { SwipeDirection } from "../hooks/usePropertyDeck";
 import { properties } from "../data/properties";
 
+/** The card shows `url` as its (top) background layer. */
+function expectPhoto(url: string) {
+  const style = screen.getByTestId("property-card-image").style.backgroundImage;
+  expect(style.startsWith(`url("${url}")`)).toBe(true);
+}
+
 const property = properties[0]; // has 4 images
 
 function SwipeHarness({
@@ -44,9 +50,7 @@ describe("PropertyCard listing type", () => {
 describe("PropertyCard photo navigation", () => {
   it("starts on the first image", () => {
     render(<PropertyCard property={property} active onSwiped={vi.fn()} />);
-    expect(screen.getByTestId("property-card-image")).toHaveStyle(
-      `background-image: url(${property.images[0]})`,
-    );
+    expectPhoto(property.images[0]);
   });
 
   it("clicking the right side advances to the next image", async () => {
@@ -54,9 +58,7 @@ describe("PropertyCard photo navigation", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /next photo/i }));
 
-    expect(screen.getByTestId("property-card-image")).toHaveStyle(
-      `background-image: url(${property.images[1]})`,
-    );
+    expectPhoto(property.images[1]);
   });
 
   it("clicking the left side goes back to the previous image", async () => {
@@ -67,9 +69,7 @@ describe("PropertyCard photo navigation", () => {
     await userEvent.click(next);
     await userEvent.click(screen.getByRole("button", { name: /previous photo/i }));
 
-    expect(screen.getByTestId("property-card-image")).toHaveStyle(
-      `background-image: url(${property.images[1]})`,
-    );
+    expectPhoto(property.images[1]);
   });
 
   it("does not go past the first or last image", async () => {
@@ -79,16 +79,12 @@ describe("PropertyCard photo navigation", () => {
     const next = screen.getByRole("button", { name: /next photo/i });
 
     await userEvent.click(prev);
-    expect(screen.getByTestId("property-card-image")).toHaveStyle(
-      `background-image: url(${property.images[0]})`,
-    );
+    expectPhoto(property.images[0]);
 
     for (let i = 0; i < property.images.length + 2; i++) {
       await userEvent.click(next);
     }
-    expect(screen.getByTestId("property-card-image")).toHaveStyle(
-      `background-image: url(${property.images[property.images.length - 1]})`,
-    );
+    expectPhoto(property.images[property.images.length - 1]);
   });
 
   it("navigating photos does not trigger a swipe decision", async () => {

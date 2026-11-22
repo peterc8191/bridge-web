@@ -1,3 +1,14 @@
 .issues-page {
   padding: 24px 16px 48px;
 }
+
+.issues-page__intro {
+  max-width: 480px;
+  margin: 0 auto 16px;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.issues-page__intro a {
+  color: var(--color-accent);
+}

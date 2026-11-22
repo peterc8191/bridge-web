@@ -100,10 +100,11 @@ describe("FilterBar", () => {
 
   it("calls onChange with a numeric min price", async () => {
     const onChange = vi.fn();
-    await renderExpanded({ filters: defaultFilters, onChange, locations, resultCount: 7 });
+    const saleFilters = { ...defaultFilters, listingType: "sale" as const };
+    await renderExpanded({ filters: saleFilters, onChange, locations, resultCount: 7 });
 
     await userEvent.type(screen.getByLabelText(/min price/i), "5");
-    expect(onChange).toHaveBeenLastCalledWith({ ...defaultFilters, minPrice: 5 });
+    expect(onChange).toHaveBeenLastCalledWith({ ...saleFilters, minPrice: 5 });
   });
 
   it("calls onChange with the selected minimum bedrooms", async () => {
@@ -122,5 +123,37 @@ describe("FilterBar", () => {
     const clearButton = screen.getByRole("button", { name: /^clear filters/i });
     await userEvent.click(clearButton);
     expect(onChange).toHaveBeenCalledWith(defaultFilters);
+  });
+
+  describe("price range", () => {
+    it("is disabled, with a hint, until sale or rent is chosen", async () => {
+      await renderExpanded({ filters: defaultFilters, onChange: vi.fn(), locations, resultCount: 7 });
+      expect(screen.getByLabelText(/min price/i)).toBeDisabled();
+      expect(screen.getByLabelText(/max price/i)).toBeDisabled();
+      expect(screen.getByText(/choose sale or rent to filter by price/i)).toBeInTheDocument();
+    });
+
+    it("labels the range as monthly rent for rentals", async () => {
+      await renderExpanded({
+        filters: { ...defaultFilters, listingType: "rent" },
+        onChange: vi.fn(),
+        locations,
+        resultCount: 7,
+      });
+      expect(screen.getByLabelText(/min rent \(\$\/mo\)/i)).toBeEnabled();
+      expect(screen.queryByText(/choose sale or rent/i)).not.toBeInTheDocument();
+    });
+
+    it("clears the price range when the listing type changes", async () => {
+      const onChange = vi.fn();
+      await renderExpanded({
+        filters: { ...defaultFilters, listingType: "sale", minPrice: 300000, maxPrice: 600000 },
+        onChange,
+        locations,
+        resultCount: 7,
+      });
+      await userEvent.selectOptions(screen.getByLabelText(/listing type/i), "rent");
+      expect(onChange).toHaveBeenCalledWith({ ...defaultFilters, listingType: "rent" });
+    });
   });
 });

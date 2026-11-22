@@ -1,7 +1,5 @@
 import { useState, type FormEvent } from "react";
 import type { NewTenderInput, Tender } from "../types/tender";
-import type { TraderProfile } from "../types/traderProfile";
-import type { AuthUser } from "../types/auth";
 import { TenderStatusBadge } from "./TenderStatusBadge";
 import "./IssueTenders.css";
 
@@ -14,8 +12,13 @@ const currency = new Intl.NumberFormat("en-US", {
 interface IssueTendersProps {
   issueId: string;
   tenders: Tender[];
-  currentUser: AuthUser | null;
-  traderProfile: TraderProfile;
+  /** Landlord who owns the issue's property: sees all tenders, can accept. */
+  isOwner: boolean;
+  isTrader: boolean;
+  /** Trader may submit a quote (area match, unresolved, not already quoted). */
+  canTender: boolean;
+  /** Why a trader can't tender, shown in place of the form. */
+  blockedReason: string;
   onAddTender: (input: NewTenderInput) => void;
   onAcceptTender: (tenderId: string) => void;
 }
@@ -23,8 +26,10 @@ interface IssueTendersProps {
 export function IssueTenders({
   issueId,
   tenders,
-  currentUser,
-  traderProfile,
+  isOwner,
+  isTrader,
+  canTender,
+  blockedReason,
   onAddTender,
   onAcceptTender,
 }: IssueTendersProps) {
@@ -33,13 +38,7 @@ export function IssueTenders({
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  if (currentUser?.role !== "landlord" && currentUser?.role !== "tradesperson") {
-    return null;
-  }
-
-  const isLandlord = currentUser.role === "landlord";
-  const isTrader = currentUser.role === "tradesperson";
-  const myTender = isTrader ? tenders.find((tender) => tender.traderId === currentUser.id) : undefined;
+  if (!isOwner && !isTrader) return null;
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -55,18 +54,12 @@ export function IssueTenders({
       return;
     }
 
-    onAddTender({
-      issueId,
-      traderId: currentUser.id,
-      traderEmail: currentUser.email,
-      traderServices: traderProfile.services,
-      traderAreas: traderProfile.areas,
-      amount: amountNumber,
-      message: message.trim(),
-    });
+    onAddTender({ issueId, amount: amountNumber, message: message.trim() });
     setAmount("");
     setMessage("");
   };
+
+  const label = isOwner ? "Tenders" : "Your quote";
 
   return (
     <div className="issue-tenders">
@@ -76,7 +69,10 @@ export function IssueTenders({
         onClick={() => setExpanded((value) => !value)}
         aria-expanded={expanded}
       >
-        <span>Tenders{tenders.length > 0 ? ` (${tenders.length})` : ""}</span>
+        <span>
+          {label}
+          {isOwner && tenders.length > 0 ? ` (${tenders.length})` : ""}
+        </span>
         <span className="issue-tenders__chevron" aria-hidden="true">
           {expanded ? "▲" : "▼"}
         </span>
@@ -85,7 +81,7 @@ export function IssueTenders({
       {expanded && (
         <div className="issue-tenders__panel">
           {tenders.length === 0 ? (
-            <p className="issue-tenders__empty">No tenders yet.</p>
+            isOwner && <p className="issue-tenders__empty">No tenders yet.</p>
           ) : (
             <ul className="issue-tenders__list" data-testid="issue-tenders-list">
               {tenders.map((tender) => (
@@ -102,7 +98,7 @@ export function IssueTenders({
                     <p className="issue-tenders__meta">Areas: {tender.traderAreas.join(", ")}</p>
                   )}
                   <p className="issue-tenders__message">{tender.message}</p>
-                  {isLandlord && tender.status === "pending" && (
+                  {isOwner && tender.status === "pending" && (
                     <button
                       type="button"
                       className="issue-tenders__accept-btn"
@@ -117,9 +113,7 @@ export function IssueTenders({
           )}
 
           {isTrader &&
-            (myTender ? (
-              <p className="issue-tenders__own-note">You've already tendered a quote on this issue.</p>
-            ) : (
+            (canTender ? (
               <form className="issue-tenders__form" onSubmit={handleSubmit} data-testid="tender-form">
                 <label className="issue-tenders__field">
                   <span>Quote amount ($)</span>
@@ -149,6 +143,8 @@ export function IssueTenders({
                   Tender a quote
                 </button>
               </form>
+            ) : (
+              blockedReason && <p className="issue-tenders__own-note">{blockedReason}</p>
             ))}
         </div>
       )}

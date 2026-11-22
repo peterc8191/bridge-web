@@ -17,7 +17,10 @@ export function IssueForm({ properties, onSubmit }: IssueFormProps) {
   if (properties.length === 0) {
     return (
       <div className="issue-form issue-form--empty" data-testid="issue-form-empty">
-        <p>Save a property first to report an issue to its owner.</p>
+        <p>You can report issues on properties you rent.</p>
+        <p className="issue-form__empty-hint">
+          Ask your landlord to add your account's email as a tenant on their listing.
+        </p>
       </div>
     );
   }

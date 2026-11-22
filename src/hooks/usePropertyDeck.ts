@@ -1,31 +1,31 @@
 import { useCallback, useMemo, useState } from "react";
+import { storageKey } from "../lib/storage";
 import type { Property } from "../types/property";
+import { useStoredState } from "./useStoredState";
 
 export type SwipeDirection = "left" | "right";
 
-const SAVED_KEY = "bridge:saved-property-ids";
-const DECIDED_KEY = "bridge:decided-property-ids";
-
-function readIds(key: string): string[] {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
+interface Decision {
+  propertyId: string;
+  direction: SwipeDirection;
 }
 
-function writeIds(key: string, ids: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(ids));
-  } catch {
-    // localStorage unavailable (e.g. private mode) - decisions just won't persist.
-  }
-}
+const EMPTY: string[] = [];
 
-export function usePropertyDeck(properties: Property[]) {
-  const [savedIds, setSavedIds] = useState<string[]>(() => readIds(SAVED_KEY));
-  const [decidedIds, setDecidedIds] = useState<string[]>(() => readIds(DECIDED_KEY));
+/** Swipe decisions and saved listings, stored per account ("guest" when signed out). */
+export function usePropertyDeck(properties: Property[], userId: string | null) {
+  const owner = userId ?? "guest";
+  const [savedIds, setSavedIds] = useStoredState<string[]>(storageKey(`saved:${owner}`), EMPTY);
+  const [decidedIds, setDecidedIds] = useStoredState<string[]>(storageKey(`decided:${owner}`), EMPTY);
+  // Undo history lives for the session only, and is scoped to the account.
+  const [history, setHistory] = useState<{ owner: string; decisions: Decision[] }>({
+    owner,
+    decisions: [],
+  });
+  const decisions = useMemo(
+    () => (history.owner === owner ? history.decisions : []),
+    [history, owner],
+  );
 
   const deck = useMemo(
     () => properties.filter((property) => !decidedIds.includes(property.id)),
@@ -37,38 +37,43 @@ export function usePropertyDeck(properties: Property[]) {
     [properties, savedIds],
   );
 
-  const decide = useCallback((property: Property, direction: SwipeDirection) => {
-    setDecidedIds((prev) => {
-      if (prev.includes(property.id)) return prev;
-      const next = [...prev, property.id];
-      writeIds(DECIDED_KEY, next);
-      return next;
-    });
+  const decide = useCallback(
+    (property: Property, direction: SwipeDirection) => {
+      setDecidedIds((prev) => (prev.includes(property.id) ? prev : [...prev, property.id]));
+      if (direction === "right") {
+        setSavedIds((prev) => (prev.includes(property.id) ? prev : [...prev, property.id]));
+      }
+      setHistory((prev) => ({
+        owner,
+        decisions: [
+          ...(prev.owner === owner ? prev.decisions : []),
+          { propertyId: property.id, direction },
+        ],
+      }));
+    },
+    [owner, setDecidedIds, setSavedIds],
+  );
 
-    if (direction === "right") {
-      setSavedIds((prev) => {
-        if (prev.includes(property.id)) return prev;
-        const next = [...prev, property.id];
-        writeIds(SAVED_KEY, next);
-        return next;
-      });
+  const undo = useCallback(() => {
+    const last = decisions[decisions.length - 1];
+    if (!last) return;
+    setDecidedIds((prev) => prev.filter((id) => id !== last.propertyId));
+    if (last.direction === "right") {
+      setSavedIds((prev) => prev.filter((id) => id !== last.propertyId));
     }
-  }, []);
+    setHistory({ owner, decisions: decisions.slice(0, -1) });
+  }, [decisions, owner, setDecidedIds, setSavedIds]);
 
-  const removeSaved = useCallback((propertyId: string) => {
-    setSavedIds((prev) => {
-      const next = prev.filter((id) => id !== propertyId);
-      writeIds(SAVED_KEY, next);
-      return next;
-    });
-  }, []);
+  const removeSaved = useCallback(
+    (propertyId: string) => setSavedIds((prev) => prev.filter((id) => id !== propertyId)),
+    [setSavedIds],
+  );
 
   const reset = useCallback(() => {
     setSavedIds([]);
     setDecidedIds([]);
-    writeIds(SAVED_KEY, []);
-    writeIds(DECIDED_KEY, []);
-  }, []);
+    setHistory({ owner, decisions: [] });
+  }, [owner, setDecidedIds, setSavedIds]);
 
-  return { deck, saved, decide, removeSaved, reset };
+  return { deck, saved, decide, undo, canUndo: decisions.length > 0, removeSaved, reset };
 }
